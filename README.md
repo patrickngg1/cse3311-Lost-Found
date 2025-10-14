@@ -647,38 +647,6 @@ const categories = [
 
 ---
 
-## 📞 Support & Contact
-
-### **Technical Support**
-- **Email**: support@uta-lostandfound.netlify.app
-- **Documentation**: This README file
-- **Issues**: GitHub issues for bug reports
-- **Feature Requests**: GitHub discussions for feature requests
-
-### **UTA Contact**
-- **Main Office**: UTA Student Affairs
-- **Phone**: (817) 272-6080
-- **Email**: studentaffairs@uta.edu
-- **Location**: University Center, Room 300
-
----
-
-## 📄 License & Terms
-
-### **Usage Terms**
-- **Eligibility**: UTA students, faculty, and staff only
-- **Data Privacy**: User data protected according to UTA privacy policies
-- **Code of Conduct**: Users must follow UTA code of conduct
-- **Prohibited Use**: No commercial use or unauthorized access
-
-### **Technical License**
-- **Open Source**: Code available for educational purposes
-- **Modifications**: Modifications allowed with proper attribution
-- **Distribution**: Distribution allowed with original license
-- **Warranty**: No warranty provided, use at own risk
-
----
-
 ## 🎉 Conclusion
 
 The UTA Lost & Found System represents a comprehensive solution for managing lost and found items within the university community. With its modern technology stack, user-friendly interface, and robust admin capabilities, it provides an efficient and effective platform for connecting lost items with their owners.
@@ -688,8 +656,4 @@ The system's Progressive Web App capabilities ensure accessibility across all de
 This documentation provides a complete overview of the system's architecture, features, and capabilities, serving as both a technical reference and a user guide for the UTA Lost & Found platform.
 
 ---
-
-*Last Updated: January 2024*
-*Version: 1.0.0*
-*Maintained by: UTA IT Department*
 
