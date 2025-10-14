@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTA Lost & Found - Create Account</title>
+    <meta name="description" content="Create your UTA Lost & Found account">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzRGNjQ2RTUiLz4KPHRleHQgeD0iMTYiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TEY8L3RleHQ+Cjwvc3ZnPgo=">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="../styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        .register-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #4f46e5 0%, #1d4ed8 100%);
+            padding: 20px;
+        }
+        
+        .register-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+        }
+        
+        .register-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .register-header h1 {
+            color: #374151;
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .register-header p {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .register-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+        
+        .form-input {
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .btn-register {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-register:hover {
+            background: #3730a3;
+        }
+        
+        .btn-register:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .register-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .register-links a {
+            color: #4f46e5;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        
+        .register-links a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            display: none;
+        }
+        
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            display: none;
+        }
+        
+        .loading {
+            display: none;
+        }
+        
+        .loading.show {
+            display: inline-block;
+        }
+        
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .uta-badge {
+            background: #f59e0b;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+        
+        .password-requirements {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        .password-requirements ul {
+            margin: 4px 0 0 16px;
+            padding: 0;
+        }
+        
+        .password-requirements li {
+            margin: 2px 0;
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-link">
+        <i class="fas fa-arrow-left"></i>
+        Back to Home
+    </a>
+    
+    <div class="register-container">
+        <div class="register-card">
+            <div class="register-header">
+                <div class="uta-badge">UTA Students & Staff Only</div>
+                <h1>Create Account</h1>
+                <p>Join the UTA Lost & Found community</p>
+            </div>
+            
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+            
+            <form class="register-form" id="registerForm">
+                <div class="form-group">
+                    <label for="displayName" class="form-label">Full Name</label>
+                    <input type="text" id="displayName" name="displayName" class="form-input" 
+                           placeholder="Enter your full name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="form-label">UTA Email Address</label>
+                    <input type="email" id="email" name="email" class="form-input" 
+                           placeholder="your.name@mavs.uta.edu" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" id="password" name="password" class="form-input" 
+                           placeholder="Create a secure password" required>
+                    <div class="password-requirements">
+                        <strong>Password must contain:</strong>
+                        <ul>
+                            <li>At least 8 characters</li>
+                            <li>One uppercase letter</li>
+                            <li>One lowercase letter</li>
+                            <li>One number</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirmPassword" class="form-label">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" 
+                           placeholder="Confirm your password" required>
+                </div>
+                
+                <button type="submit" class="btn-register" id="registerBtn">
+                    <span class="loading" id="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+                    <span id="registerText">Create Account</span>
+                </button>
+            </form>
+            
+            <div class="register-links">
+                <a href="login.html">Already have an account? Sign In</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js"></script>
+    
+    <!-- Auth System -->
+    <script type="module" src="../js/firebase-config.js"></script>
+    <script type="module" src="../js/auth.js"></script>
+    <script type="module" src="../js/register.js"></script>
+</body>
+</html>

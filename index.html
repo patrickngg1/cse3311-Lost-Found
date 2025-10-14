@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTA Lost & Found - University of Texas at Arlington</title>
+    <meta name="description" content="Official UTA Lost & Found system. Report lost or found items on campus. Connect with the UTA community to recover your belongings.">
+    <meta name="keywords" content="UTA, lost and found, University of Texas Arlington, campus lost items, student services">
+    <meta name="author" content="UTA Lost & Found System">
+    <meta name="robots" content="index, follow">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="config/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="UTA Lost & Found">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzRGNjQ2RTUiLz4KPHRleHQgeD0iMTYiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TEY8L3RleHQ+Cjwvc3ZnPgo=">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="styles.css" as="style">
+    <link rel="preload" href="js/script.js" as="script">
+    <link rel="preload" href="js/firebase-config.js" as="script">
+    <link rel="preload" href="js/auth.js" as="script">
+    
+    <!-- DNS prefetch for external resources -->
+    <link rel="dns-prefetch" href="//www.gstatic.com">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzRGNjQ2RTUiLz4KPHRleHQgeD0iMjAiIHk9IjI2IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+VVQ8L3RleHQ+Cjwvc3ZnPgo=" alt="UTA Logo" class="nav-logo">
+                <span class="nav-title">UTA Lost & Found</span>
+            </div>
+            <div class="nav-menu">
+                <a href="#home" class="nav-link active">Home</a>
+                <a href="#browse" class="nav-link">Browse Items</a>
+                <a href="#submit" class="nav-link auth-required">Submit Item</a>
+                <a href="pages/dashboard.html" class="nav-link auth-required">Dashboard</a>
+                <a href="pages/admin.html" class="nav-link admin-required">Admin</a>
+                <a href="pages/login.html" class="nav-link guest-only">Login</a>
+                <a href="pages/register.html" class="nav-link guest-only">Register</a>
+                <div class="nav-user auth-required" style="display: none;">
+                    <span id="userName">User</span>
+                    <span id="adminBadge" style="display: none;">👑</span>
+                    <button onclick="authManager.signOut()" class="btn-logout">Logout</button>
+                </div>
+            </div>
+            <div class="nav-toggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <span class="hero-highlight">Lost Something?</span><br>
+                    Found Something?<br>
+                    <span class="hero-subtitle">UTA Lost & Found is Here to Help</span>
+                </h1>
+                <p class="hero-description">
+                    Connect with the UTA community to recover lost items or help others find their belongings. 
+                    Our secure system makes it easy to report and claim items across campus.
+                </p>
+                <div class="hero-actions">
+                    <a href="#submit" class="btn btn-primary btn-large">
+                        <i class="fas fa-plus"></i>
+                        Report Lost/Found Item
+                    </a>
+                    <a href="#browse" class="btn btn-secondary btn-large">
+                        <i class="fas fa-search"></i>
+                        Browse Items
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-number" id="totalItems">0</span>
+                        <span class="stat-label">Items Listed</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number" id="recoveredItems">0</span>
+                        <span class="stat-label">Items Recovered</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number" id="activeUsers">0</span>
+                        <span class="stat-label">Active Users</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="hero-illustration">
+                    <i class="fas fa-search-location"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="quick-actions">
+        <div class="container">
+            <h2 class="section-title">What would you like to do?</h2>
+            <div class="action-grid">
+                <div class="action-card" data-action="lost">
+                    <div class="action-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h3>I Lost Something</h3>
+                    <p>Report a lost item and get notified when it's found</p>
+                    <button class="btn btn-outline">Report Lost Item</button>
+                </div>
+                <div class="action-card" data-action="found">
+                    <div class="action-icon">
+                        <i class="fas fa-hand-holding"></i>
+                    </div>
+                    <h3>I Found Something</h3>
+                    <p>Report a found item to help reunite it with its owner</p>
+                    <button class="btn btn-outline">Report Found Item</button>
+                </div>
+                <div class="action-card" data-action="browse">
+                    <div class="action-icon">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <h3>Browse Items</h3>
+                    <p>Search through all reported lost and found items</p>
+                    <button class="btn btn-outline">Browse All Items</button>
+                </div>
+                <div class="action-card" data-action="claim">
+                    <div class="action-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3>Claim an Item</h3>
+                    <p>Found your item? Claim it with proof of ownership</p>
+                    <button class="btn btn-outline">Claim Item</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Browse Items Section -->
+    <section id="browse" class="browse-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Browse Lost & Found Items</h2>
+                <p class="section-subtitle">Search through approved items to find what you're looking for</p>
+            </div>
+            <div class="browse-controls">
+                <div class="search-box">
+                    <input type="text" id="browseSearch" placeholder="Search by item name, location, or description...">
+                    <button class="search-btn"><i class="fas fa-search"></i></button>
+                </div>
+                <button id="refreshBrowseBtn" class="btn btn-outline">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <div class="filter-controls">
+                    <select id="categoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="electronics">📱 Electronics</option>
+                        <option value="books">📚 Books</option>
+                        <option value="id_card">🆔 ID Card</option>
+                        <option value="clothing">👕 Clothing</option>
+                        <option value="bags">🎒 Bags</option>
+                        <option value="keys">🔑 Keys</option>
+                        <option value="wallet">💳 Wallet</option>
+                        <option value="documents">📄 Documents</option>
+                        <option value="accessories">👓 Accessories</option>
+                        <option value="sports_gear">⚽ Sports Gear</option>
+                        <option value="other">📦 Other</option>
+                    </select>
+                    <select id="typeFilter">
+                        <option value="">All Types</option>
+                        <option value="LOST">🔍 Lost Items</option>
+                        <option value="FOUND">🎯 Found Items</option>
+                    </select>
+                </div>
+            </div>
+            <div class="items-grid" id="itemsGrid">
+                <!-- Items will be loaded here -->
+            </div>
+            <div class="load-more" id="loadMoreContainer" style="display: none;">
+                <button class="btn btn-secondary" id="loadMoreBtn">
+                    <i class="fas fa-plus"></i> Load More Items
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Submit Item Section -->
+    <section id="submit" class="submit-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Submit Lost or Found Item</h2>
+                <p class="section-subtitle">Help connect lost items with their owners by reporting what you've lost or found</p>
+            </div>
+            <div class="submit-container">
+                <form id="itemForm" class="item-form" novalidate>
+                    <!-- Honeypot field for spam protection -->
+                    <input type="text" name="website" style="display: none;" tabindex="-1" autocomplete="off">
+                    
+                    <!-- Step 1: Item Type -->
+                    <div class="form-step active" data-step="1">
+                        <h3>What type of item is this?</h3>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="mode" value="LOST" required>
+                                <span class="radio-custom"></span>
+                                <span class="radio-text">
+                                    <strong>I lost something</strong>
+                                    <small>Report an item you've lost</small>
+                                </span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="mode" value="FOUND" required>
+                                <span class="radio-custom"></span>
+                                <span class="radio-text">
+                                    <strong>I found something</strong>
+                                    <small>Report an item you've found</small>
+                                </span>
+                            </label>
+                        </div>
+                        <div class="error-message" id="mode-error"></div>
+                    </div>
+
+                    <!-- Step 2: Basic Information -->
+                    <div class="form-step" data-step="2">
+                        <h3>Basic Information</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="title" class="form-label required">Item Title</label>
+                                <input type="text" id="title" name="title" placeholder="e.g., iPhone 13 Pro in black case" maxlength="80" required>
+                                <div class="help-text">Be specific: brand, color, model</div>
+                                <div class="error-message" id="title-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="category" class="form-label required">Category</label>
+                                <select id="category" name="category" required>
+                                    <option value="">Choose a category</option>
+                                    <option value="electronics">Electronics</option>
+                                    <option value="books">Books</option>
+                                    <option value="id_card">ID Card</option>
+                                    <option value="clothing">Clothing</option>
+                                    <option value="bags">Bags</option>
+                                    <option value="keys">Keys</option>
+                                    <option value="wallet">Wallet</option>
+                                    <option value="documents">Documents</option>
+                                    <option value="accessories">Accessories</option>
+                                    <option value="sports_gear">Sports Gear</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                <div class="error-message" id="category-error"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="description" class="form-label required">Description</label>
+                            <textarea id="description" name="description" rows="4" minlength="20" maxlength="1000" required></textarea>
+                            <div class="help-text" id="description-help">Where/how you lost it, unique marks/serial, contents</div>
+                            <div class="error-message" id="description-error"></div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Details -->
+                    <div class="form-step" data-step="3">
+                        <h3>Additional Details</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="brand" class="form-label">Brand/Model</label>
+                                <input type="text" id="brand" name="brand" placeholder="e.g., Apple iPhone 13 Pro" maxlength="60">
+                            </div>
+                            <div class="form-group">
+                                <label for="uniqueId" class="form-label">Serial # / Unique Mark</label>
+                                <input type="text" id="uniqueId" name="uniqueId" placeholder="Enter unique identifier" minlength="3" maxlength="120">
+                                <div class="help-text">We hash this for security; used to verify ownership</div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Color</label>
+                            <div class="color-chips">
+                                <button type="button" class="color-chip" data-color="black">Black</button>
+                                <button type="button" class="color-chip" data-color="white">White</button>
+                                <button type="button" class="color-chip" data-color="gray">Gray</button>
+                                <button type="button" class="color-chip" data-color="silver">Silver</button>
+                                <button type="button" class="color-chip" data-color="gold">Gold</button>
+                                <button type="button" class="color-chip" data-color="blue">Blue</button>
+                                <button type="button" class="color-chip" data-color="red">Red</button>
+                                <button type="button" class="color-chip" data-color="green">Green</button>
+                                <button type="button" class="color-chip" data-color="yellow">Yellow</button>
+                                <button type="button" class="color-chip" data-color="brown">Brown</button>
+                                <button type="button" class="color-chip" data-color="pink">Pink</button>
+                                <button type="button" class="color-chip" data-color="purple">Purple</button>
+                                <button type="button" class="color-chip" data-color="mixed">Mixed</button>
+                            </div>
+                            <input type="text" id="color-custom" name="color-custom" placeholder="Custom color (e.g., navy)" maxlength="20">
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Location & Time -->
+                    <div class="form-step" data-step="4">
+                        <h3>When & Where</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="date" class="form-label required" id="date-label">Date</label>
+                                <input type="date" id="date" name="date" required>
+                                <div class="error-message" id="date-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="location" class="form-label required">Location</label>
+                                <select id="location" name="location" required>
+                                    <option value="">Choose a building or location</option>
+                                    <option value="library">Central Library</option>
+                                    <option value="engineering_bldg">Engineering Building</option>
+                                    <option value="business_bldg">Business Building</option>
+                                    <option value="science_bldg">Science Building</option>
+                                    <option value="fine_arts_bldg">Fine Arts Building</option>
+                                    <option value="student_center">Student Center</option>
+                                    <option value="gym">Maverick Activities Center</option>
+                                    <option value="cafeteria">Cafeteria</option>
+                                    <option value="parking_lot_a">Parking Lot A</option>
+                                    <option value="parking_lot_b">Parking Lot B</option>
+                                    <option value="parking_lot_c">Parking Lot C</option>
+                                    <option value="dorm_alpha">Arlington Hall</option>
+                                    <option value="dorm_beta">Kalpana Chawla Hall</option>
+                                    <option value="dorm_gamma">Vandergriff Hall</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                <div class="error-message" id="location-error"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="location-spot" class="form-label">Specific Location</label>
+                            <input type="text" id="location-spot" name="location-spot" placeholder="e.g., 3rd floor study area near printers" maxlength="80">
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Photos -->
+                    <div class="form-step" data-step="5">
+                        <h3>Photos (Optional but Recommended)</h3>
+                        <div class="form-group">
+                            <div class="file-upload-area" id="fileUploadArea">
+                                <div class="upload-content">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Drag & drop photos here or <span class="upload-link">click to browse</span></p>
+                                    <small>JPG, PNG, HEIC up to 5MB each (max 4 photos)</small>
+                                </div>
+                                <input type="file" id="photos" name="photos" multiple accept=".jpg,.jpeg,.png,.heic" style="display: none;">
+                            </div>
+                            <div class="photo-preview" id="photoPreview"></div>
+                            <div class="error-message" id="photos-error"></div>
+                        </div>
+                    </div>
+
+                    <!-- Step 6: Contact & Verification -->
+                    <div class="form-step" data-step="6">
+                        <h3>Contact & Verification</h3>
+                        <div class="form-group">
+                            <label for="utaEmail" class="form-label required">UTA Email Address</label>
+                            <input type="email" id="utaEmail" name="utaEmail" placeholder="your.name@mavs.uta.edu" required>
+                            <div class="help-text">Only @mavs.uta.edu emails are accepted for UTA students and staff</div>
+                            <div class="error-message" id="utaEmail-error"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label required">Preferred Contact Method</label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="contact" value="in-app" checked required>
+                                    <span class="radio-custom"></span>
+                                    <span class="radio-text">
+                                        <strong>In-app messages</strong>
+                                        <small>Receive messages through the platform</small>
+                                    </span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="contact" value="email" required>
+                                    <span class="radio-custom"></span>
+                                    <span class="radio-text">
+                                        <strong>Email notifications</strong>
+                                        <small>Receive email updates about your item</small>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="error-message" id="contact-error"></div>
+                        </div>
+                        <div class="form-group" id="proof-requirement" style="display: none;">
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="proofRequired" id="proofRequired">
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-text">
+                                    I will ask for proof of ownership before handing over the item
+                                </span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="visibilityConsent" id="visibilityConsent" required>
+                                <span class="checkbox-custom"></span>
+                                <span class="checkbox-text">
+                                    I agree to show this item publicly once approved by administrators
+                                </span>
+                            </label>
+                            <div class="error-message" id="visibility-error"></div>
+                        </div>
+                    </div>
+
+                    <!-- Form Navigation -->
+                    <div class="form-navigation">
+                        <button type="button" id="prevBtn" class="btn btn-secondary" style="display: none;">
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <button type="button" id="nextBtn" class="btn btn-primary">
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <button type="submit" id="submitBtn" class="btn btn-primary" style="display: none;">
+                            <i class="fas fa-paper-plane"></i> Submit Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Success Screen -->
+    <div id="successScreen" class="success-screen" style="display: none;">
+        <div class="success-content">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Item Submitted Successfully!</h2>
+            <p id="successMessage">Your item has been submitted and is pending review by administrators.</p>
+            <div class="success-actions">
+                <button type="button" id="submitAnother" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Submit Another Item
+                </button>
+                <a href="dashboard.html" class="btn btn-secondary">
+                    <i class="fas fa-tachometer-alt"></i> View Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>UTA Lost & Found</h3>
+                    <p>Connecting the UTA community to recover lost items and help others find their belongings.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#browse">Browse Items</a></li>
+                        <li><a href="#submit">Submit Item</a></li>
+                        <li><a href="dashboard.html">Dashboard</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="mailto:lostfound@uta.edu">lostfound@uta.edu</a></li>
+                        <li><a href="tel:+18172722011">(817) 272-2011</a></li>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 University of Texas at Arlington. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js"></script>
+    
+    <!-- Auth System -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/email-notifications.js"></script>
+    <script src="js/script.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/js/sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

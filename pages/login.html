@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTA Lost & Found - Login</title>
+    <meta name="description" content="Login to UTA Lost & Found system">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzRGNjQ2RTUiLz4KPHRleHQgeD0iMTYiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TEY8L3RleHQ+Cjwvc3ZnPgo=">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="../styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #4f46e5 0%, #1d4ed8 100%);
+            padding: 20px;
+        }
+        
+        .login-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            color: #374151;
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .login-header p {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+        
+        .form-input {
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .btn-login {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-login:hover {
+            background: #3730a3;
+        }
+        
+        .btn-login:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .login-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .login-links a {
+            color: #4f46e5;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        
+        .login-links a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            display: none;
+        }
+        
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            display: none;
+        }
+        
+        .loading {
+            display: none;
+        }
+        
+        .loading.show {
+            display: inline-block;
+        }
+        
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .uta-badge {
+            background: #f59e0b;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <a href="../index.html" class="back-link">
+        <i class="fas fa-arrow-left"></i>
+        Back to Home
+    </a>
+    
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="uta-badge">UTA Students & Staff Only</div>
+                <h1>Welcome Back</h1>
+                <p>Sign in to access UTA Lost & Found</p>
+            </div>
+            
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+            
+            <form class="login-form" id="loginForm">
+                <div class="form-group">
+                    <label for="email" class="form-label">UTA Email Address</label>
+                    <input type="email" id="email" name="email" class="form-input" 
+                           placeholder="your.name@mavs.uta.edu" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" id="password" name="password" class="form-input" 
+                           placeholder="Enter your password" required>
+                </div>
+                
+                <button type="submit" class="btn-login" id="loginBtn">
+                    <span class="loading" id="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+                    <span id="loginText">Sign In</span>
+                </button>
+            </form>
+            
+            <div class="login-links">
+                <a href="#" id="forgotPassword">Forgot Password?</a>
+                <span> • </span>
+                <a href="register.html">Create Account</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js"></script>
+    
+    <!-- Auth System -->
+    <script type="module" src="../js/firebase-config.js"></script>
+    <script type="module" src="../js/auth.js"></script>
+    <script type="module" src="../js/login.js"></script>
+</body>
+</html>

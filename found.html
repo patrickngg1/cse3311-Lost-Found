@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTA Lost & Found - Report Found Item</title>
+    <meta name="description" content="Report a found item at UTA">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="../assets/icons/favicon.ico">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        .found-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            padding: 20px;
+        }
+        
+        .found-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .found-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .found-header h1 {
+            color: #374151;
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .found-header p {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .form-steps {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            display: flex;
+            align-items: center;
+            margin: 0 10px;
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        
+        .step.active .step-number {
+            background: #10b981;
+            color: white;
+        }
+        
+        .step.completed .step-number {
+            background: #059669;
+            color: white;
+        }
+        
+        .found-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+        
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .btn-primary {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary:hover {
+            background: #059669;
+        }
+        
+        .btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            display: none;
+        }
+        
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            display: none;
+        }
+        
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .uta-badge {
+            background: #f59e0b;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+        
+        .image-upload {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .image-upload:hover {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+        
+        .image-upload.dragover {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+        
+        .image-preview {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .image-preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .image-preview-item .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .safety-tips {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .safety-tips h4 {
+            color: #92400e;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .safety-tips ul {
+            color: #92400e;
+            font-size: 0.875rem;
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .safety-tips li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <a href="../../index.html" class="back-link">
+        <i class="fas fa-arrow-left"></i>
+        Back to Home
+    </a>
+    
+    <div class="found-container">
+        <div class="found-card">
+            <div class="found-header">
+                <div class="uta-badge">UTA Students & Staff Only</div>
+                <h1>Report Found Item</h1>
+                <p>Help reunite lost items with their owners</p>
+            </div>
+            
+            <div class="safety-tips">
+                <h4><i class="fas fa-shield-alt"></i> Safety Tips for Found Items</h4>
+                <ul>
+                    <li>Do not touch items that appear dangerous or suspicious</li>
+                    <li>If you find valuable items, consider turning them in to UTA Police</li>
+                    <li>Take photos of the item in its found location if safe to do so</li>
+                    <li>Keep the item in a safe place until claimed</li>
+                </ul>
+            </div>
+            
+            <div class="form-steps">
+                <div class="step active" data-step="1">
+                    <div class="step-number">1</div>
+                    <span>Basic Info</span>
+                </div>
+                <div class="step" data-step="2">
+                    <div class="step-number">2</div>
+                    <span>Location & Time</span>
+                </div>
+                <div class="step" data-step="3">
+                    <div class="step-number">3</div>
+                    <span>Images & Details</span>
+                </div>
+                <div class="step" data-step="4">
+                    <div class="step-number">4</div>
+                    <span>Contact & Submit</span>
+                </div>
+            </div>
+            
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+            
+            <form class="found-form" id="foundForm">
+                <!-- Step 1: Basic Information -->
+                <div class="form-step" id="step1">
+                    <div class="form-group">
+                        <label for="title" class="form-label">Item Title *</label>
+                        <input type="text" id="title" name="title" class="form-input" 
+                               placeholder="e.g., iPhone 13 Pro Max" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description" class="form-label">Description *</label>
+                        <textarea id="description" name="description" class="form-textarea" 
+                                  placeholder="Describe the found item in detail..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="category" class="form-label">Category *</label>
+                        <select id="category" name="category" class="form-select" required>
+                            <option value="">Select a category</option>
+                            <option value="Electronics">Electronics</option>
+                            <option value="Clothing & Accessories">Clothing & Accessories</option>
+                            <option value="Books & Study Materials">Books & Study Materials</option>
+                            <option value="Personal Items">Personal Items</option>
+                            <option value="Keys & ID Cards">Keys & ID Cards</option>
+                            <option value="Bags & Backpacks">Bags & Backpacks</option>
+                            <option value="Sports Equipment">Sports Equipment</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Location & Time -->
+                <div class="form-step" id="step2" style="display: none;">
+                    <div class="form-group">
+                        <label for="location" class="form-label">Where did you find it? *</label>
+                        <input type="text" id="location" name="location" class="form-input" 
+                               placeholder="e.g., Library Building, Room 201" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dateFound" class="form-label">Date Found *</label>
+                        <input type="date" id="dateFound" name="dateFound" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="timeFound" class="form-label">Approximate Time Found *</label>
+                        <input type="time" id="timeFound" name="timeFound" class="form-input" required>
+                    </div>
+                </div>
+                
+                <!-- Step 3: Images & Details -->
+                <div class="form-step" id="step3" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">Upload Photos (Optional)</label>
+                        <div class="image-upload" id="imageUpload">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: #6b7280; margin-bottom: 10px;"></i>
+                            <p>Click to upload or drag and drop images here</p>
+                            <p style="font-size: 0.875rem; color: #6b7280;">PNG, JPG up to 2MB each (max 5 images)</p>
+                        </div>
+                        <input type="file" id="imageInput" multiple accept="image/*" style="display: none;">
+                        <div class="image-preview" id="imagePreview"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="additionalDetails" class="form-label">Additional Details</label>
+                        <textarea id="additionalDetails" name="additionalDetails" class="form-textarea" 
+                                  placeholder="Any additional information about the found item..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemCondition" class="form-label">Item Condition</label>
+                        <select id="itemCondition" name="itemCondition" class="form-select">
+                            <option value="excellent">Excellent</option>
+                            <option value="good">Good</option>
+                            <option value="fair">Fair</option>
+                            <option value="poor">Poor</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Contact & Submit -->
+                <div class="form-step" id="step4" style="display: none;">
+                    <div class="form-group">
+                        <label for="contactInfo" class="form-label">Contact Information *</label>
+                        <input type="text" id="contactInfo" name="contactInfo" class="form-input" 
+                               placeholder="Phone number or email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="preferredContact" class="form-label">Preferred Contact Method</label>
+                        <select id="preferredContact" name="preferredContact" class="form-select">
+                            <option value="email">Email</option>
+                            <option value="phone">Phone</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="keepItem" class="form-label">
+                            <input type="checkbox" id="keepItem" name="keepItem">
+                            I can keep this item safe until the owner claims it
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="termsAccepted" name="termsAccepted" required>
+                            I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="prevBtn" style="display: none;">Previous</button>
+                    <button type="button" class="btn-primary" id="nextBtn">Next</button>
+                    <button type="submit" class="btn-primary" id="submitBtn" style="display: none;">
+                        <i class="fas fa-paper-plane"></i>
+                        Submit Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
+    
+    <!-- Scripts -->
+    <script type="module" src="../js/firebase-config.js"></script>
+    <script type="module" src="../js/auth.js"></script>
+    <script type="module" src="../js/script.js"></script>
+    
+    <script>
+        // Found item form functionality
+        let currentStep = 1;
+        const totalSteps = 4;
+        const uploadedImages = [];
+        
+        // Step navigation
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (validateCurrentStep()) {
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    updateStepDisplay();
+                }
+            }
+        });
+        
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                updateStepDisplay();
+            }
+        });
+        
+        function updateStepDisplay() {
+            // Hide all steps
+            for (let i = 1; i <= totalSteps; i++) {
+                document.getElementById(`step${i}`).style.display = 'none';
+                document.querySelector(`[data-step="${i}"]`).classList.remove('active', 'completed');
+            }
+            
+            // Show current step
+            document.getElementById(`step${currentStep}`).style.display = 'block';
+            document.querySelector(`[data-step="${currentStep}"]`).classList.add('active');
+            
+            // Mark previous steps as completed
+            for (let i = 1; i < currentStep; i++) {
+                document.querySelector(`[data-step="${i}"]`).classList.add('completed');
+            }
+            
+            // Update buttons
+            document.getElementById('prevBtn').style.display = currentStep > 1 ? 'block' : 'none';
+            document.getElementById('nextBtn').style.display = currentStep < totalSteps ? 'block' : 'none';
+            document.getElementById('submitBtn').style.display = currentStep === totalSteps ? 'block' : 'none';
+        }
+        
+        function validateCurrentStep() {
+            const currentStepElement = document.getElementById(`step${currentStep}`);
+            const requiredFields = currentStepElement.querySelectorAll('[required]');
+            
+            for (let field of requiredFields) {
+                if (!field.value.trim()) {
+                    showError(`Please fill in the ${field.previousElementSibling.textContent} field.`);
+                    field.focus();
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // Image upload functionality
+        document.getElementById('imageUpload').addEventListener('click', () => {
+            document.getElementById('imageInput').click();
+        });
+        
+        document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+        
+        function handleImageUpload(event) {
+            const files = Array.from(event.target.files);
+            
+            files.forEach(file => {
+                if (file.size > 2 * 1024 * 1024) {
+                    showError('Image size must be less than 2MB');
+                    return;
+                }
+                
+                if (uploadedImages.length >= 5) {
+                    showError('Maximum 5 images allowed');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    uploadedImages.push({
+                        file: file,
+                        dataUrl: e.target.result
+                    });
+                    updateImagePreview();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        function updateImagePreview() {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            
+            uploadedImages.forEach((image, index) => {
+                const item = document.createElement('div');
+                item.className = 'image-preview-item';
+                item.innerHTML = `
+                    <img src="${image.dataUrl}" alt="Preview">
+                    <button type="button" class="remove-btn" onclick="removeImage(${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                preview.appendChild(item);
+            });
+        }
+        
+        function removeImage(index) {
+            uploadedImages.splice(index, 1);
+            updateImagePreview();
+        }
+        
+        // Form submission
+        document.getElementById('foundForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!validateCurrentStep()) {
+                return;
+            }
+            
+            const formData = new FormData(e.target);
+            const foundItemData = {
+                title: formData.get('title'),
+                description: formData.get('description'),
+                category: formData.get('category'),
+                location: formData.get('location'),
+                dateFound: formData.get('dateFound'),
+                timeFound: formData.get('timeFound'),
+                contactInfo: formData.get('contactInfo'),
+                preferredContact: formData.get('preferredContact'),
+                additionalDetails: formData.get('additionalDetails'),
+                itemCondition: formData.get('itemCondition'),
+                keepItem: formData.get('keepItem') === 'on',
+                images: uploadedImages
+            };
+            
+            try {
+                // Submit found item (this would integrate with your existing script.js)
+                showSuccess('Found item reported successfully! You will receive an email confirmation shortly.');
+                e.target.reset();
+                uploadedImages.length = 0;
+                updateImagePreview();
+                currentStep = 1;
+                updateStepDisplay();
+            } catch (error) {
+                showError('Failed to submit found item. Please try again.');
+                console.error('Submission error:', error);
+            }
+        });
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Set default date to today
+        document.getElementById('dateFound').value = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
