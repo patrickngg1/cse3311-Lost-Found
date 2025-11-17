@@ -67,10 +67,66 @@ class AuthManager {
         }
     }
     
-    // Validate UTA email format
+    // Validate UTA email format - allows both @mavs.uta.edu (students) and @uta.edu (staff)
     validateUtaEmail(email) {
-        const utaEmailRegex = /^[a-zA-Z0-9._%+-]+@mavs\.uta\.edu$/i;
+        const utaEmailRegex = /^[a-zA-Z0-9._%+-]+@(mavs\.)?uta\.edu$/i;
         return utaEmailRegex.test(email);
+    }
+    
+    // Validate password strength
+    isStrongPassword(password) {
+        const minLength = 8;
+        const hasUpperCase = /[A-Z]/.test(password);
+        const hasLowerCase = /[a-z]/.test(password);
+        const hasNumbers = /\d/.test(password);
+        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        
+        return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar;
+    }
+    
+    // Get user-friendly error messages
+    getErrorMessage(error) {
+        const errorMessages = {
+            'auth/email-already-in-use': 'This email is already registered. Please try logging in instead.',
+            'auth/weak-password': 'Password is too weak. Please use a stronger password.',
+            'auth/invalid-email': 'Please enter a valid email address.',
+            'auth/user-not-found': 'No account found with this email address.',
+            'auth/wrong-password': 'Incorrect password. Please try again.',
+            'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+            'auth/network-request-failed': 'Network error. Please check your connection and try again.',
+            'auth/user-disabled': 'This account has been disabled. Please contact support.'
+        };
+        
+        return errorMessages[error.code] || error.message || 'An unexpected error occurred. Please try again.';
+    }
+    
+    // Show user messages
+    showMessage(type, message) {
+        // Create message element
+        const messageEl = document.createElement('div');
+        messageEl.className = `auth-message auth-message-${type}`;
+        messageEl.innerHTML = `
+            <div class="auth-message-content">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+                <button class="auth-message-close" onclick="this.parentElement.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Add to page
+        const container = document.querySelector('.auth-container, .login-container, .register-container');
+        if (container) {
+            container.insertBefore(messageEl, container.firstChild);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (messageEl.parentElement) {
+                    messageEl.remove();
+                }
+            }, 5000);
+        }
     }
     
     // Sign up new user
@@ -78,7 +134,17 @@ class AuthManager {
         try {
             // Validate UTA email
             if (!this.validateUtaEmail(email)) {
-                throw new Error('Only @mavs.uta.edu emails are allowed');
+                throw new Error('Only @mavs.uta.edu (students) or @uta.edu (staff) emails are allowed');
+            }
+            
+            // Validate password strength
+            if (!this.isStrongPassword(password)) {
+                throw new Error('Password must be at least 8 characters with uppercase, lowercase, number, and special character');
+            }
+            
+            // Validate display name
+            if (!displayName || displayName.trim().length < 2) {
+                throw new Error('Please enter a valid name (at least 2 characters)');
             }
             
             // Create user account
@@ -86,7 +152,7 @@ class AuthManager {
             const user = userCredential.user;
             
             // Update display name
-            await updateProfile(user, { displayName });
+            await updateProfile(user, { displayName: displayName.trim() });
             
             // Send email verification
             await sendEmailVerification(user);
@@ -94,17 +160,23 @@ class AuthManager {
             // Create user document in Firestore
             await setDoc(doc(db, 'users', user.uid), {
                 email: user.email,
-                displayName: displayName,
+                displayName: displayName.trim(),
                 isAdmin: this.adminEmails.includes(email),
                 createdAt: serverTimestamp(),
                 emailVerified: false,
-                lastLogin: null
+                lastLogin: null,
+                profileComplete: false
             });
             
-            return { success: true, user };
+            // Show success message
+            this.showMessage('success', 'Account created successfully! Please check your email to verify your account.');
+            
+            return { success: true, user, needsVerification: true };
         } catch (error) {
             console.error('Sign up error:', error);
-            return { success: false, error: error.message };
+            const errorMessage = this.getErrorMessage(error);
+            this.showMessage('error', errorMessage);
+            return { success: false, error: errorMessage };
         }
     }
     
@@ -113,7 +185,7 @@ class AuthManager {
         try {
             // Validate UTA email
             if (!this.validateUtaEmail(email)) {
-                throw new Error('Only @mavs.uta.edu emails are allowed');
+                throw new Error('Only @mavs.uta.edu (students) or @uta.edu (staff) emails are allowed');
             }
             
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -233,7 +305,7 @@ class AuthManager {
     // Require authentication for protected routes
     requireAuth() {
         if (!this.isAuthenticated()) {
-            window.location.href = 'login.html';
+            window.location.href = 'pages/login.html';
             return false;
         }
         return true;

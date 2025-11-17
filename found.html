@@ -7,11 +7,12 @@
     <meta name="description" content="Report a found item at UTA">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="../assets/icons/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzRGNjQ2RTUiLz4KPHRleHQgeD0iMTYiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TEY8L3RleHQ+Cjwvc3ZnPgo=">
     
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -297,7 +298,7 @@
     </style>
 </head>
 <body>
-    <a href="../../index.html" class="back-link">
+    <a href="index.html" class="back-link">
         <i class="fas fa-arrow-left"></i>
         Back to Home
     </a>
@@ -377,8 +378,14 @@
                 <div class="form-step" id="step2" style="display: none;">
                     <div class="form-group">
                         <label for="location" class="form-label">Where did you find it? *</label>
-                        <input type="text" id="location" name="location" class="form-input" 
-                               placeholder="e.g., Library Building, Room 201" required>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" id="location" name="location" class="form-input" 
+                                   placeholder="e.g., Library Building, Room 201" required style="flex: 1;">
+                            <button type="button" id="getLocationBtn" class="btn-secondary" 
+                                    style="padding: 12px; min-width: auto;" title="Use current location">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -396,10 +403,18 @@
                 <div class="form-step" id="step3" style="display: none;">
                     <div class="form-group">
                         <label class="form-label">Upload Photos (Optional)</label>
-                        <div class="image-upload" id="imageUpload">
-                            <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: #6b7280; margin-bottom: 10px;"></i>
-                            <p>Click to upload or drag and drop images here</p>
-                            <p style="font-size: 0.875rem; color: #6b7280;">PNG, JPG up to 2MB each (max 5 images)</p>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <div class="image-upload" id="imageUpload" style="flex: 1;">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: #6b7280; margin-bottom: 10px;"></i>
+                                <p>Click to upload or drag and drop images here</p>
+                                <p style="font-size: 0.875rem; color: #6b7280;">PNG, JPG up to 2MB each (max 5 images)</p>
+                            </div>
+                            <button type="button" id="takePhotoBtn" class="btn-secondary" 
+                                    style="padding: 20px; min-width: auto; display: flex; flex-direction: column; align-items: center; gap: 8px;" 
+                                    title="Take photo with camera">
+                                <i class="fas fa-camera" style="font-size: 1.5rem;"></i>
+                                <span style="font-size: 0.875rem;">Camera</span>
+                            </button>
                         </div>
                         <input type="file" id="imageInput" multiple accept="image/*" style="display: none;">
                         <div class="image-preview" id="imagePreview"></div>
@@ -472,10 +487,13 @@
     <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
     
+    <!-- Environment Variables (injected at build time) -->
+    <script src="js/env.js"></script>
+    
     <!-- Scripts -->
-    <script type="module" src="../js/firebase-config.js"></script>
-    <script type="module" src="../js/auth.js"></script>
-    <script type="module" src="../js/script.js"></script>
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/script.js"></script>
     
     <script>
         // Found item form functionality

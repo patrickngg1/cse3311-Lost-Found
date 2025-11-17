@@ -1,0 +1,48 @@
+[build]
+  publish = "."
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Environment variables for Netlify
+[context.production.environment]
+  FIREBASE_API_KEY = "AIzaSyCnH3YyYNU0RO-ohpqaaZ2-ak1C52-gsXI"
+  FIREBASE_AUTH_DOMAIN = "utalostandfound-42797.firebaseapp.com"
+  FIREBASE_PROJECT_ID = "utalostandfound-42797"
+  FIREBASE_STORAGE_BUCKET = "utalostandfound-42797.firebasestorage.app"
+  FIREBASE_MESSAGING_SENDER_ID = "404965401963"
+  FIREBASE_APP_ID = "1:404965401963:web:b8051d3c08b3915b9c982e"
+  FIREBASE_MEASUREMENT_ID = "G-CRBYQ80ESQ"
+
+# Redirects for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdnjs.cloudflare.com https://apis.google.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com https://use.fontawesome.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://use.fontawesome.com; img-src 'self' data: https:; connect-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://*.gstatic.com;"
+
+# Cache static assets
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/styles.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/config/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"

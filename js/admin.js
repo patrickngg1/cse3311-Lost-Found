@@ -7,6 +7,8 @@ class AdminDashboard {
         this.categoryFilter = '';
         this.statusFilter = '';
         this.adminEmail = 'sxa6003@mavs.uta.edu'; // UTA Admin Email
+        this.selectedItems = new Set();
+        this.bulkActionMode = false;
         
         this.init();
     }
@@ -38,10 +40,19 @@ class AdminDashboard {
     setupEventListeners() {
         // Mobile navigation toggle
         const navToggle = document.querySelector('.nav-toggle');
-        if (navToggle) {
+        const navMenu = document.querySelector('.nav-menu');
+        if (navToggle && navMenu) {
             navToggle.addEventListener('click', () => {
-                const navMenu = document.querySelector('.nav-menu');
                 navMenu.classList.toggle('active');
+                navToggle.classList.toggle('active');
+            });
+            
+            // Close menu when clicking on nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    navMenu.classList.remove('active');
+                    navToggle.classList.remove('active');
+                });
             });
         }
         
@@ -164,16 +175,16 @@ class AdminDashboard {
     
     updateStats() {
         const total = this.items.length;
-        const pending = this.items.filter(item => item.status === 'PENDING').length;
         const approved = this.items.filter(item => item.status === 'APPROVED').length;
-        const rejected = this.items.filter(item => item.status === 'REJECTED').length;
-        const claimed = this.items.filter(item => item.status === 'CLAIMED').length;
+        const visible = this.items.filter(item => item.status === 'APPROVED' && item.isVisible !== false && item.isDeleted !== true).length;
+        const hidden = this.items.filter(item => item.status === 'APPROVED' && item.isVisible === false).length;
+        const deleted = this.items.filter(item => item.isDeleted === true).length;
         
         this.updateStatCard('adminTotalItems', total);
-        this.updateStatCard('adminPendingItems', pending);
-        this.updateStatCard('adminApprovedItems', approved);
-        this.updateStatCard('adminRejectedItems', rejected);
-        this.updateStatCard('adminClaimedItems', claimed);
+        this.updateStatCard('adminPendingItems', approved); // Now shows approved items
+        this.updateStatCard('adminApprovedItems', visible); // Now shows visible items
+        this.updateStatCard('adminRejectedItems', hidden + deleted); // Now shows hidden + deleted
+        this.updateStatCard('adminClaimedItems', 0); // Not used in new system
     }
     
     updateStatCard(id, value) {
@@ -254,15 +265,20 @@ class AdminDashboard {
     }
     
     createAdminItemCard(item) {
-        const date = new Date(item.date).toLocaleDateString();
+        const itemType = item.type || item.mode || 'LOST';
+        const date = new Date(item.dateLost || item.dateFound || item.submittedAt).toLocaleDateString();
         const submittedAt = new Date(item.submittedAt).toLocaleString();
         const statusClass = item.status ? item.status.toLowerCase() : 'pending';
+        
+        // Get photos if available
+        const photos = item.photos || item.uploadedPhotos || [];
+        const hasPhotos = photos.length > 0;
         
         return `
             <div class="admin-item-card" data-item-id="${item.id}">
                 <div class="admin-item-header">
-                    <div class="admin-item-type ${item.mode.toLowerCase()}">
-                        ${item.mode === 'LOST' ? '🔍 Lost Item' : '📦 Found Item'}
+                    <div class="admin-item-type ${itemType.toLowerCase()}">
+                        ${itemType === 'LOST' ? '🔍 Lost Item' : '📦 Found Item'}
                     </div>
                     <div class="admin-item-status ${statusClass}">
                         ${this.getStatusIcon(item.status)} ${item.status || 'PENDING'}
@@ -277,6 +293,17 @@ class AdminDashboard {
                 </div>
                 
                 <div class="admin-item-body">
+                    ${hasPhotos ? `
+                    <div class="admin-item-photos">
+                        ${photos.slice(0, 3).map(photo => `
+                            <div class="admin-photo-thumbnail" onclick="adminDashboard.showPhotoModal('${item.id}', '${photo.dataUrl || photo.url || photo}')">
+                                <img src="${photo.dataUrl || photo.url || photo}" alt="Item photo" loading="lazy">
+                            </div>
+                        `).join('')}
+                        ${photos.length > 3 ? `<div class="admin-photo-more">+${photos.length - 3}</div>` : ''}
+                    </div>
+                    ` : ''}
+                    
                     <div class="admin-item-description">
                         ${this.escapeHtml(item.description)}
                     </div>
@@ -307,14 +334,24 @@ class AdminDashboard {
                     <button class="btn-admin btn-view" onclick="adminDashboard.viewItemDetails('${item.id}')">
                         <i class="fas fa-eye"></i> View
                     </button>
-                    ${item.status === 'PENDING' ? `
-                    <button class="btn-admin btn-approve" onclick="adminDashboard.approveItem('${item.id}')">
-                        <i class="fas fa-check"></i> Approve
-                    </button>
-                    <button class="btn-admin btn-reject" onclick="adminDashboard.rejectItem('${item.id}')">
-                        <i class="fas fa-times"></i> Reject
-                    </button>
-                    ` : ''}
+                    ${item.status === 'APPROVED' ? `
+                        ${item.isVisible !== false ? `
+                            <button class="btn-admin btn-hide" onclick="adminDashboard.hideItem('${item.id}')">
+                                <i class="fas fa-eye-slash"></i> Hide
+                            </button>
+                        ` : `
+                            <button class="btn-admin btn-show" onclick="adminDashboard.showItem('${item.id}')">
+                                <i class="fas fa-eye"></i> Show
+                            </button>
+                        `}
+                    ` : `
+                        <button class="btn-admin btn-approve" onclick="adminDashboard.approveItem('${item.id}')">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button class="btn-admin btn-reject" onclick="adminDashboard.rejectItem('${item.id}')">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                    `}
                     <button class="btn-admin btn-edit" onclick="adminDashboard.editItem('${item.id}')">
                         <i class="fas fa-edit"></i> Edit
                     </button>
@@ -330,6 +367,33 @@ class AdminDashboard {
         return category.split('_').map(word => 
             word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' ');
+    }
+    
+    showPhotoModal(itemId, photoUrl) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay photo-modal';
+        modal.innerHTML = `
+            <div class="modal-content photo-modal-content">
+                <div class="modal-header">
+                    <h3>Item Photo</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <img src="${photoUrl}" alt="Item photo" class="photo-modal-image">
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Close on overlay click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
     }
     
     escapeHtml(text) {
@@ -555,24 +619,93 @@ class AdminDashboard {
         alert(`Edit functionality for "${item.title}" would open an edit form.\n\nThis feature can be implemented with a modal form similar to the submission form.`);
     }
     
+    async hideItem(itemId) {
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return;
+        
+        if (confirm(`Hide "${item.title}" from public view?\n\nUsers will no longer see this item in the browse section.`)) {
+            try {
+                const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const { db } = await import('./firebase-config.js');
+                
+                await updateDoc(doc(db, 'items', itemId), {
+                    isVisible: false,
+                    hiddenAt: serverTimestamp(),
+                    hiddenBy: 'admin'
+                });
+                
+                // Update local item
+                item.isVisible = false;
+                item.hiddenAt = new Date().toISOString();
+                item.hiddenBy = 'admin';
+                
+                this.updateStats();
+                this.renderItems();
+                
+                alert(`👁️‍🗨️ Item "${item.title}" has been hidden from public view.`);
+            } catch (error) {
+                console.error('Error hiding item:', error);
+                alert('❌ Error hiding item. Please try again.');
+            }
+        }
+    }
+    
+    async showItem(itemId) {
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return;
+        
+        if (confirm(`Show "${item.title}" in public view?\n\nUsers will be able to see this item again.`)) {
+            try {
+                const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const { db } = await import('./firebase-config.js');
+                
+                await updateDoc(doc(db, 'items', itemId), {
+                    isVisible: true,
+                    shownAt: serverTimestamp(),
+                    shownBy: 'admin'
+                });
+                
+                // Update local item
+                item.isVisible = true;
+                item.shownAt = new Date().toISOString();
+                item.shownBy = 'admin';
+                
+                this.updateStats();
+                this.renderItems();
+                
+                alert(`👁️ Item "${item.title}" is now visible to users.`);
+            } catch (error) {
+                console.error('Error showing item:', error);
+                alert('❌ Error showing item. Please try again.');
+            }
+        }
+    }
+    
     async deleteItem(itemId) {
         const item = this.items.find(i => i.id === itemId);
         if (!item) return;
         
         if (confirm(`⚠️ Are you sure you want to permanently delete "${item.title}"?\n\nThis action cannot be undone.`)) {
             try {
-                const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const { doc, updateDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
                 const { db } = await import('./firebase-config.js');
                 
-                // Delete from Firebase
-                await deleteDoc(doc(db, 'items', itemId));
+                // Mark as deleted instead of actually deleting
+                await updateDoc(doc(db, 'items', itemId), {
+                    isDeleted: true,
+                    deletedAt: serverTimestamp(),
+                    deletedBy: 'admin'
+                });
                 
-                // Update local array
-                this.items = this.items.filter(i => i.id !== itemId);
+                // Update local item
+                item.isDeleted = true;
+                item.deletedAt = new Date().toISOString();
+                item.deletedBy = 'admin';
+                
                 this.updateStats();
                 this.renderItems();
                 
-                alert(`🗑️ Item "${item.title}" has been permanently deleted from the database.`);
+                alert(`🗑️ Item "${item.title}" has been marked as deleted.`);
             } catch (error) {
                 console.error('Error deleting item:', error);
                 alert('❌ Error deleting item. Please try again.');

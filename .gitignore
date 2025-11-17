@@ -5,7 +5,6 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment variables
-.env
 .env.local
 .env.development.local
 .env.test.local
@@ -65,10 +64,14 @@ jspm_packages/
 
 # dotenv environment variables file
 .env
+.env.local
 
 # Build outputs
 dist/
 build/
+
+# ESLint results
+eslint-results.json
 
 # Temporary files
 tmp/
@@ -104,3 +107,19 @@ docs/_build/
 # Local configuration overrides
 config.local.js
 firebase-config.local.js
+
+# Internal documentation and teacher feedback
+TEACHER_FEEDBACK*.md
+BUG_FIXES.md
+MOCK_DATA_REMOVAL.md
+STATIC_ANALYSIS_REPORT.md
+DATA_STRUCTURE.md
+GITHUB_PREPARATION.md
+ORGANIZATION_SUMMARY.md
+FOLDER_STRUCTURE.md
+PROJECT_STRUCTURE.md
+ENVIRONMENT_SETUP.md
+SIMILAR_ITEMS_EXPLANATION.md
+FEATURES_DOCUMENTATION.md
+GITHUB_README.md
+docs/

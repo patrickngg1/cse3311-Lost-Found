@@ -34,7 +34,7 @@ class RegisterPage {
     checkAuthState() {
         // If user is already logged in, redirect to dashboard
         if (authManager.isAuthenticated()) {
-            window.location.href = 'dashboard.html';
+            window.location.href = 'pages/dashboard.html';
         }
     }
     
@@ -89,7 +89,7 @@ class RegisterPage {
         
         // Validate UTA email
         if (!authManager.validateUtaEmail(email)) {
-            this.showError('Only @mavs.uta.edu emails are allowed');
+                this.showError('Only @mavs.uta.edu (students) or @uta.edu (staff) emails are allowed');
             return;
         }
         
@@ -118,7 +118,12 @@ class RegisterPage {
                 
                 // Redirect to login after 3 seconds
                 setTimeout(() => {
-                    window.location.href = 'login.html';
+                    // Fix: Use relative path from pages/ directory
+                    if (window.location.pathname.includes('/pages/')) {
+                        window.location.href = 'login.html';
+                    } else {
+                        window.location.href = 'pages/login.html';
+                    }
                 }, 3000);
             } else {
                 this.showError(result.error);

@@ -12,6 +12,7 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="../styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
@@ -169,15 +170,14 @@
             color: white;
             padding: 4px 12px;
             border-radius: 20px;
-            font-size: 0.75rem;
+            font-size: 0.9rem;
             font-weight: 600;
-            text-transform: uppercase;
             display: inline-block;
             margin-bottom: 16px;
         }
         
         .password-requirements {
-            font-size: 0.75rem;
+            font-size: 0.9rem;
             color: #6b7280;
             margin-top: 4px;
         }
@@ -219,7 +219,10 @@
                 <div class="form-group">
                     <label for="email" class="form-label">UTA Email Address</label>
                     <input type="email" id="email" name="email" class="form-input" 
-                           placeholder="your.name@mavs.uta.edu" required>
+                           placeholder="your.name@mavs.uta.edu or your.name@uta.edu" required>
+                    <div style="font-size: 0.9rem; color: #6b7280; margin-top: 4px;">
+                        Students: @mavs.uta.edu | Staff: @uta.edu
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -256,6 +259,9 @@
             </div>
         </div>
     </div>
+    
+    <!-- Environment Variables (injected at build time) -->
+    <script src="../js/env.js"></script>
     
     <!-- Firebase SDK -->
     <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>

@@ -12,18 +12,43 @@ class Dashboard {
     
     async init() {
         this.setupEventListeners();
+        await this.waitForAuth();
         await this.loadItemsFromFirebase();
         this.updateStats();
         this.renderItems();
     }
     
+    async waitForAuth() {
+        const { auth } = await import('./firebase-config.js');
+        
+        return new Promise((resolve) => {
+            if (auth.currentUser) {
+                resolve();
+            } else {
+                const unsubscribe = auth.onAuthStateChanged((user) => {
+                    unsubscribe();
+                    resolve();
+                });
+            }
+        });
+    }
+    
     setupEventListeners() {
         // Mobile navigation toggle
         const navToggle = document.querySelector('.nav-toggle');
-        if (navToggle) {
+        const navMenu = document.querySelector('.nav-menu');
+        if (navToggle && navMenu) {
             navToggle.addEventListener('click', () => {
-                const navMenu = document.querySelector('.nav-menu');
                 navMenu.classList.toggle('active');
+                navToggle.classList.toggle('active');
+            });
+            
+            // Close menu when clicking on nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    navMenu.classList.remove('active');
+                    navToggle.classList.remove('active');
+                });
             });
         }
         
@@ -78,29 +103,51 @@ class Dashboard {
     
     async loadItemsFromFirebase() {
         try {
-            const { collection, getDocs, query, orderBy, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            const { db } = await import('./firebase-config.js');
+            const { collection, getDocs, query, orderBy, where, or, and } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const { db, auth } = await import('./firebase-config.js');
             
-            console.log('Loading approved items from Firebase...');
+            console.log('Loading items from Firebase...');
             const itemsCollection = collection(db, 'items');
-            const q = query(
-                itemsCollection, 
-                where('status', '==', 'APPROVED'),
-                orderBy('submittedAt', 'desc')
-            );
-            const querySnapshot = await getDocs(q);
+            
+            // Get current user
+            const currentUser = auth.currentUser;
+            let q;
+            
+            // Fetch all items and filter in JavaScript to handle both submittedBy and userId fields
+            // This approach is more flexible and handles data structure variations
+            const allItemsQuery = query(itemsCollection, orderBy('submittedAt', 'desc'));
+            const querySnapshot = await getDocs(allItemsQuery);
             
             this.items = [];
             querySnapshot.forEach((doc) => {
-                const item = {
-                    id: doc.id,
-                    ...doc.data(),
-                    submittedAt: doc.data().submittedAt?.toDate?.() || new Date(doc.data().submittedAt)
-                };
-                this.items.push(item);
+                const data = doc.data();
+                
+                // Determine if item should be shown
+                const isApproved = data.status === 'APPROVED';
+                const isUserItem = currentUser && (
+                    data.submittedBy === currentUser.uid || 
+                    data.userId === currentUser.uid
+                );
+                
+                // Show item if: approved OR (user is logged in AND it's their item)
+                if (isApproved || isUserItem) {
+                    const item = {
+                        id: doc.id,
+                        ...data,
+                        // Ensure type field exists (use mode if type doesn't exist)
+                        type: data.type || data.mode || 'LOST',
+                        // Ensure submittedBy exists (use userId if submittedBy doesn't exist)
+                        submittedBy: data.submittedBy || data.userId || null,
+                        submittedAt: data.submittedAt?.toDate?.() || new Date(data.submittedAt),
+                        // Set default values for new fields if they don't exist
+                        isVisible: data.isVisible !== false, // Default to true if not set
+                        isDeleted: data.isDeleted === true   // Default to false if not set
+                    };
+                    this.items.push(item);
+                }
             });
             
-            console.log(`✅ Loaded ${this.items.length} approved items from Firebase`);
+            console.log(`✅ Loaded ${this.items.length} items from Firebase (approved + user's items)`);
         } catch (error) {
             console.error('Error loading items from Firebase:', error);
             // Fallback to localStorage
@@ -140,8 +187,8 @@ class Dashboard {
     
     updateStats() {
         const total = this.items.length;
-        const lost = this.items.filter(item => item.mode === 'LOST').length;
-        const found = this.items.filter(item => item.mode === 'FOUND').length;
+        const lost = this.items.filter(item => item.type === 'LOST' || item.mode === 'LOST').length;
+        const found = this.items.filter(item => item.type === 'FOUND' || item.mode === 'FOUND').length;
         const pending = this.items.filter(item => item.status === 'PENDING').length;
         const claimed = this.items.filter(item => item.status === 'CLAIMED').length;
         
@@ -165,14 +212,35 @@ class Dashboard {
         
         const filteredItems = this.getFilteredItems();
         
+        console.log(`📊 Dashboard: Rendering ${filteredItems.length} items (total: ${this.items.length})`);
+        
         if (filteredItems.length === 0) {
-            itemsGrid.innerHTML = `
-                <div class="dashboard-no-items">
-                    <i class="fas fa-inbox"></i>
-                    <h3>No items found</h3>
-                    <p>No items match the current filter criteria.</p>
-                </div>
-            `;
+            let message = '';
+            if (this.items.length === 0) {
+                message = `
+                    <div class="dashboard-no-items">
+                        <i class="fas fa-inbox"></i>
+                        <h3>No items yet</h3>
+                        <p>No items found in the system yet.</p>
+                        <p><strong>Tip:</strong> Submit a new item - it will be automatically approved and visible!</p>
+                        <a href="../index.html#submit" class="btn btn-primary" style="margin-top: 1rem;">
+                            <i class="fas fa-plus"></i> Submit New Item
+                        </a>
+                    </div>
+                `;
+            } else {
+                message = `
+                    <div class="dashboard-no-items">
+                        <i class="fas fa-filter"></i>
+                        <h3>No items match your filters</h3>
+                        <p>Try adjusting your search or filter criteria.</p>
+                        <button onclick="dashboard.setFilter('all')" class="btn btn-secondary" style="margin-top: 1rem;">
+                            <i class="fas fa-refresh"></i> Clear Filters
+                        </button>
+                    </div>
+                `;
+            }
+            itemsGrid.innerHTML = message;
             return;
         }
         
@@ -182,14 +250,19 @@ class Dashboard {
     getFilteredItems() {
         let filtered = [...this.items];
         
+        // First filter out hidden and deleted items
+        filtered = filtered.filter(item => 
+            item.isVisible !== false && item.isDeleted !== true
+        );
+        
         // Filter by type/status
         if (this.currentFilter !== 'all') {
             switch (this.currentFilter) {
                 case 'lost':
-                    filtered = filtered.filter(item => item.mode === 'LOST');
+                    filtered = filtered.filter(item => item.type === 'LOST' || item.mode === 'LOST');
                     break;
                 case 'found':
-                    filtered = filtered.filter(item => item.mode === 'FOUND');
+                    filtered = filtered.filter(item => item.type === 'FOUND' || item.mode === 'FOUND');
                     break;
                 case 'pending':
                     filtered = filtered.filter(item => item.status === 'PENDING');
@@ -231,15 +304,20 @@ class Dashboard {
     }
     
     createItemCard(item) {
-        const date = new Date(item.date).toLocaleDateString();
+        const itemType = item.type || item.mode || 'LOST';
+        const date = new Date(item.dateLost || item.dateFound || item.submittedAt).toLocaleDateString();
         const time = new Date(item.submittedAt).toLocaleString();
         const statusClass = item.status ? item.status.toLowerCase() : 'pending';
+        
+        // Get photos if available
+        const photos = item.photos || item.uploadedPhotos || [];
+        const hasPhotos = photos.length > 0;
         
         return `
             <div class="dashboard-item-card" data-item-id="${item.id}">
                 <div class="dashboard-item-header">
-                    <div class="dashboard-item-type ${item.mode.toLowerCase()}">
-                        ${item.mode === 'LOST' ? '🔍 Lost Item' : '📦 Found Item'}
+                    <div class="dashboard-item-type ${itemType.toLowerCase()}">
+                        ${itemType === 'LOST' ? '🔍 Lost Item' : '📦 Found Item'}
                     </div>
                     <div class="dashboard-item-status ${statusClass}">
                         ${this.getStatusIcon(item.status)} ${item.status || 'PENDING'}
@@ -249,10 +327,22 @@ class Dashboard {
                         <span><i class="fas fa-calendar"></i> ${date}</span>
                         <span><i class="fas fa-map-marker-alt"></i> ${this.escapeHtml(item.location)}</span>
                         <span><i class="fas fa-eye"></i> ${item.views || 0} views</span>
+                        ${hasPhotos ? '<span><i class="fas fa-camera"></i> Has photos</span>' : ''}
                     </div>
                 </div>
                 
                 <div class="dashboard-item-body">
+                    ${hasPhotos ? `
+                    <div class="dashboard-item-photos">
+                        ${photos.slice(0, 3).map(photo => `
+                            <div class="dashboard-photo-thumbnail" onclick="dashboard.showPhotoModal('${item.id}', '${photo.dataUrl || photo.url || photo}')">
+                                <img src="${photo.dataUrl || photo.url || photo}" alt="Item photo" loading="lazy">
+                            </div>
+                        `).join('')}
+                        ${photos.length > 3 ? `<div class="dashboard-photo-more">+${photos.length - 3}</div>` : ''}
+                    </div>
+                    ` : ''}
+                    
                     <div class="dashboard-item-description">
                         ${this.escapeHtml(item.description)}
                     </div>
@@ -356,6 +446,76 @@ class Dashboard {
         }
     }
     
+    getPlaceholderImage(category, type) {
+        // Generate category-specific placeholder images
+        const colors = {
+            'Electronics': '#3b82f6',
+            'Clothing & Accessories': '#ef4444',
+            'Books & Study Materials': '#10b981',
+            'Personal Items': '#f59e0b',
+            'Keys & ID Cards': '#8b5cf6',
+            'Bags & Backpacks': '#06b6d4',
+            'Sports Equipment': '#84cc16',
+            'Other': '#6b7280'
+        };
+        
+        const icons = {
+            'Electronics': '📱',
+            'Clothing & Accessories': '👕',
+            'Books & Study Materials': '📚',
+            'Personal Items': '💼',
+            'Keys & ID Cards': '🔑',
+            'Bags & Backpacks': '🎒',
+            'Sports Equipment': '⚽',
+            'Other': '📦'
+        };
+        
+        const color = colors[category] || colors['Other'];
+        const icon = icons[category] || icons['Other'];
+        const typeColor = type === 'LOST' ? '#ef4444' : '#10b981';
+        
+        // Create SVG placeholder
+        const svg = `
+            <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="200" fill="${color}" opacity="0.1"/>
+                <rect x="20" y="20" width="160" height="160" rx="20" fill="${color}" opacity="0.2"/>
+                <circle cx="100" cy="100" r="40" fill="${color}" opacity="0.3"/>
+                <text x="100" y="110" text-anchor="middle" font-size="40" fill="${color}">${icon}</text>
+                <rect x="10" y="10" width="180" height="180" rx="20" stroke="${typeColor}" stroke-width="3" fill="none"/>
+                <text x="100" y="180" text-anchor="middle" font-size="12" fill="${typeColor}" font-weight="bold">${type}</text>
+            </svg>
+        `;
+        
+        return 'data:image/svg+xml;base64,' + btoa(svg);
+    }
+
+    showPhotoModal(itemId, photoUrl) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay photo-modal';
+        modal.innerHTML = `
+            <div class="modal-content photo-modal-content">
+                <div class="modal-header">
+                    <h3>Item Photo</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <img src="${photoUrl}" alt="Item photo" class="photo-modal-image">
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Close on overlay click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+
     showItemDetails(itemId) {
         const item = this.items.find(i => i.id === itemId);
         if (!item) return;

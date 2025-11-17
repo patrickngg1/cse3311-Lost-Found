@@ -4,9 +4,10 @@
   "description": "University of Texas at Arlington Lost & Found System - A comprehensive web application for managing lost and found items on campus",
   "main": "index.html",
   "scripts": {
-    "start": "python -m http.server 8000",
-    "dev": "python -m http.server 8000",
-    "build": "echo 'No build process needed for static site'",
+    "start": "python3 -m http.server 8000",
+    "dev": "python3 -m http.server 8000",
+    "build": "node build.js",
+    "build:netlify": "node build.js && echo 'Build completed for Netlify'",
     "test": "echo 'Tests will be implemented in future iterations'",
     "deploy": "echo 'Deploy to Netlify via drag and drop or Git integration'",
     "lint": "echo 'Linting will be implemented with ESLint in future iterations'"
@@ -26,7 +27,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/uta-it/uta-lost-found.git"
+    "url": "git+https://github.com/uta-it/uta-lost-found.git"
   },
   "bugs": {
     "url": "https://github.com/uta-it/uta-lost-found/issues"
@@ -35,11 +36,15 @@
   "engines": {
     "node": ">=14.0.0"
   },
-  "devDependencies": {},
-  "dependencies": {},
   "browserslist": [
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "directories": {
+    "doc": "docs"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  }
 }

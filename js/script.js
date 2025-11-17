@@ -12,6 +12,10 @@ class UTALostFound {
         this.typeFilter = '';
         this.currentPage = 1;
         this.itemsPerPage = 12;
+        this.draftKey = 'uta_lost_found_draft';
+        this.isSubmitting = false;
+        this.currentLocation = null;
+        this.isOnline = navigator.onLine;
         
         this.init();
     }
@@ -23,6 +27,8 @@ class UTALostFound {
             this.initializeForm();
             this.setupNavigation();
             this.setupAuthIntegration();
+            this.setupOfflineMode();
+            this.setupPushNotifications();
             
             // Wait for Firebase to be ready before loading browse items
             console.log('⏳ Waiting for Firebase to be ready...');
@@ -43,6 +49,437 @@ class UTALostFound {
         } catch (error) {
             console.error('❌ Error during UTALostFound initialization:', error);
             this.showErrorMessage('Failed to initialize the application. Please refresh the page.');
+        }
+    }
+    
+    // Draft saving functionality
+    saveDraft() {
+        try {
+            const draftData = {
+                currentStep: this.currentStep,
+                formData: this.formData,
+                selectedColors: Array.from(this.selectedColors),
+                uploadedPhotos: this.uploadedPhotos,
+                timestamp: new Date().toISOString()
+            };
+            
+            localStorage.setItem(this.draftKey, JSON.stringify(draftData));
+            console.log('💾 Draft saved successfully');
+        } catch (error) {
+            console.error('❌ Error saving draft:', error);
+        }
+    }
+    
+    loadDraft() {
+        try {
+            const draftData = localStorage.getItem(this.draftKey);
+            if (draftData) {
+                const draft = JSON.parse(draftData);
+                
+                // Check if draft is recent (within 24 hours)
+                const draftAge = Date.now() - new Date(draft.timestamp).getTime();
+                const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+                
+                if (draftAge < maxAge) {
+                    this.currentStep = draft.currentStep || 1;
+                    this.formData = draft.formData || {};
+                    this.selectedColors = new Set(draft.selectedColors || []);
+                    this.uploadedPhotos = draft.uploadedPhotos || [];
+                    
+                    // Restore form data
+                    this.restoreFormData();
+                    
+                    // Show draft restoration message
+                    this.showDraftMessage();
+                    
+                    console.log('📄 Draft restored successfully');
+                } else {
+                    // Remove old draft
+                    localStorage.removeItem(this.draftKey);
+                    console.log('🗑️ Old draft removed');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error loading draft:', error);
+        }
+    }
+    
+    restoreFormData() {
+        // Restore form fields
+        Object.keys(this.formData).forEach(key => {
+            const element = document.querySelector(`[name="${key}"]`);
+            if (element) {
+                if (element.type === 'radio' || element.type === 'checkbox') {
+                    element.checked = this.formData[key];
+                } else {
+                    element.value = this.formData[key];
+                }
+            }
+        });
+        
+        // Restore colors
+        this.selectedColors.forEach(color => {
+            const colorElement = document.querySelector(`[data-color="${color}"]`);
+            if (colorElement) {
+                colorElement.classList.add('selected');
+            }
+        });
+        
+        // Restore photos
+        this.uploadedPhotos.forEach(photo => {
+            this.displayUploadedPhoto(photo);
+        });
+        
+        // Update step display
+        this.updateStepDisplay();
+    }
+    
+    showDraftMessage() {
+        const messageEl = document.createElement('div');
+        messageEl.className = 'draft-message';
+        messageEl.innerHTML = `
+            <div class="draft-message-content">
+                <i class="fas fa-file-alt"></i>
+                <span>Draft restored from previous session</span>
+                <button class="draft-message-close" onclick="this.parentElement.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        const container = document.querySelector('.form-container');
+        if (container) {
+            container.insertBefore(messageEl, container.firstChild);
+            
+            setTimeout(() => {
+                if (messageEl.parentElement) {
+                    messageEl.remove();
+                }
+            }, 5000);
+        }
+    }
+    
+    clearDraft() {
+        localStorage.removeItem(this.draftKey);
+        console.log('🗑️ Draft cleared');
+    }
+    
+    // GPS Location Detection
+    async getCurrentLocation() {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported by this browser.'));
+                return;
+            }
+            
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000 // 5 minutes
+            };
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    this.currentLocation = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    };
+                    console.log('📍 Current location:', this.currentLocation);
+                    resolve(this.currentLocation);
+                },
+                (error) => {
+                    console.warn('❌ Location access denied or failed:', error.message);
+                    reject(error);
+                },
+                options
+            );
+        });
+    }
+    
+    // Auto-fill location in form
+    async autoFillLocation() {
+        try {
+            const location = await this.getCurrentLocation();
+            const locationInput = document.getElementById('itemLocation');
+            if (locationInput && !locationInput.value) {
+                // You can integrate with a reverse geocoding service here
+                // For now, we'll just show coordinates
+                locationInput.value = `Current Location (${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)})`;
+                locationInput.placeholder = 'Location detected automatically';
+            }
+        } catch (error) {
+            console.log('📍 Location auto-fill failed:', error.message);
+        }
+    }
+    
+    // Camera Integration
+    async takePhoto() {
+        try {
+            // Check if camera is available
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('Camera not supported on this device');
+            }
+            
+            // Request camera access
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: 'environment', // Use back camera on mobile
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                } 
+            });
+            
+            // Create camera modal
+            const modal = document.createElement('div');
+            modal.className = 'camera-modal';
+            modal.innerHTML = `
+                <div class="camera-container">
+                    <div class="camera-header">
+                        <h3>Take Photo</h3>
+                        <button class="camera-close" onclick="this.closest('.camera-modal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <video id="cameraVideo" autoplay playsinline></video>
+                    <div class="camera-controls">
+                        <button id="capturePhoto" class="btn btn-primary">
+                            <i class="fas fa-camera"></i> Capture
+                        </button>
+                        <button id="switchCamera" class="btn btn-secondary">
+                            <i class="fas fa-sync-alt"></i> Switch
+                        </button>
+                    </div>
+                    <canvas id="cameraCanvas" style="display: none;"></canvas>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            const captureBtn = document.getElementById('capturePhoto');
+            
+            video.srcObject = stream;
+            
+            // Capture photo
+            captureBtn.addEventListener('click', () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                
+                // Convert to blob and add to photos
+                canvas.toBlob((blob) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const photoData = {
+                            dataUrl: e.target.result,
+                            name: `camera_photo_${Date.now()}.jpg`,
+                            size: blob.size,
+                            type: blob.type
+                        };
+                        this.uploadedPhotos.push(photoData);
+                        this.displayUploadedPhoto(photoData);
+                        console.log('📸 Photo captured and added');
+                    };
+                    reader.readAsDataURL(blob);
+                }, 'image/jpeg', 0.8);
+                
+                // Stop camera and close modal
+                stream.getTracks().forEach(track => track.stop());
+                modal.remove();
+            });
+            
+        } catch (error) {
+            console.error('📸 Camera error:', error);
+            alert('Camera access denied or not available. Please use file upload instead.');
+        }
+    }
+    
+    // Offline Mode
+    setupOfflineMode() {
+        // Listen for online/offline events
+        window.addEventListener('online', () => {
+            this.isOnline = true;
+            this.showOfflineMessage('You are back online!', 'success');
+            console.log('🌐 Back online');
+            // Try to sync any pending data
+            this.syncPendingData();
+        });
+        
+        window.addEventListener('offline', () => {
+            this.isOnline = false;
+            this.showOfflineMessage('You are offline. Some features may be limited.', 'warning');
+            console.log('📴 Gone offline');
+        });
+        
+        // Check initial online status
+        this.isOnline = navigator.onLine;
+        if (!this.isOnline) {
+            this.showOfflineMessage('You are offline. Browsing cached items only.', 'info');
+        }
+    }
+    
+    showOfflineMessage(message, type = 'info') {
+        const messageEl = document.createElement('div');
+        messageEl.className = `offline-message offline-message-${type}`;
+        messageEl.innerHTML = `
+            <div class="offline-content">
+                <i class="fas fa-${type === 'success' ? 'wifi' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(messageEl);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (messageEl.parentNode) {
+                messageEl.remove();
+            }
+        }, 5000);
+    }
+    
+    async syncPendingData() {
+        // Sync any pending form submissions or updates
+        const pendingData = localStorage.getItem('uta_pending_sync');
+        if (pendingData) {
+            try {
+                const pending = JSON.parse(pendingData);
+                console.log('🔄 Syncing pending data:', pending);
+                
+                // Process pending submissions
+                for (const item of pending.submissions || []) {
+                    await this.saveItemToFirebase(item);
+                }
+                
+                // Clear pending data after successful sync
+                localStorage.removeItem('uta_pending_sync');
+                this.showOfflineMessage('Pending data synced successfully!', 'success');
+            } catch (error) {
+                console.error('❌ Error syncing pending data:', error);
+            }
+        }
+    }
+    
+    // Enhanced item loading with offline support
+    async loadBrowseItemsWithOfflineSupport() {
+        if (this.isOnline) {
+            try {
+                await this.loadBrowseItemsFromFirebase();
+            } catch (error) {
+                console.warn('⚠️ Online loading failed, falling back to offline:', error);
+                this.loadItemsFromStorage();
+                this.loadBrowseItems();
+            }
+        } else {
+            console.log('📴 Offline mode: Loading from cache');
+            this.loadItemsFromStorage();
+            this.loadBrowseItems();
+        }
+    }
+    
+    
+    // Push Notifications
+    async setupPushNotifications() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            console.log('📱 Push notifications not supported');
+            return;
+        }
+        
+        try {
+            // Register service worker
+            const registration = await navigator.serviceWorker.register('/js/sw.js');
+            console.log('📱 Service worker registered:', registration);
+            
+            // Don't request permission automatically - wait for user interaction
+            console.log('📱 Push notifications ready (permission will be requested on user action)');
+        } catch (error) {
+            console.error('❌ Push notification setup failed:', error);
+        }
+    }
+    
+    // Request notification permission (call this on user interaction)
+    async requestNotificationPermission() {
+        if (!('Notification' in window)) {
+            console.log('📱 Notifications not supported');
+            return false;
+        }
+        
+        if (Notification.permission === 'granted') {
+            console.log('📱 Notification permission already granted');
+            return true;
+        }
+        
+        if (Notification.permission === 'denied') {
+            console.log('📱 Notification permission denied');
+            return false;
+        }
+        
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                console.log('📱 Notification permission granted');
+                return true;
+            } else {
+                console.log('📱 Notification permission denied');
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error requesting notification permission:', error);
+            return false;
+        }
+    }
+    
+    async subscribeToNotifications(registration) {
+        try {
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: this.urlBase64ToUint8Array('YOUR_VAPID_PUBLIC_KEY') // Replace with actual VAPID key
+            });
+            
+            console.log('📱 Push subscription:', subscription);
+            
+            // Send subscription to server (you'll need to implement this)
+            await this.sendSubscriptionToServer(subscription);
+            
+        } catch (error) {
+            console.error('❌ Push subscription failed:', error);
+        }
+    }
+    
+    urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+        
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+    
+    async sendSubscriptionToServer(subscription) {
+        // This would typically send the subscription to your backend
+        // For now, we'll store it locally
+        localStorage.setItem('uta_push_subscription', JSON.stringify(subscription));
+        console.log('📱 Push subscription stored locally');
+    }
+    
+    // Show local notification for matches
+    showMatchNotification(item) {
+        if (Notification.permission === 'granted') {
+            new Notification('Potential Match Found!', {
+                body: `A new item "${item.title}" might match your lost item.`,
+                icon: '/data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzRGNjQ2RTUiLz4KPHRleHQgeD0iMTYiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TEY8L3RleHQ+Cjwvc3ZnPgo=',
+                tag: `match-${item.id}`,
+                requireInteraction: true
+            });
         }
     }
     
@@ -76,8 +513,8 @@ class UTALostFound {
                 <h3>🔐 Login Required</h3>
                 <p>Please log in with your UTA email to submit items.</p>
                 <div class="login-prompt-actions">
-                    <a href="login.html" class="btn btn-primary">Login</a>
-                    <a href="register.html" class="btn btn-secondary">Create Account</a>
+                    <a href="pages/login.html" class="btn btn-primary">Login</a>
+                    <a href="pages/register.html" class="btn btn-secondary">Create Account</a>
                 </div>
             </div>
         `;
@@ -140,10 +577,19 @@ class UTALostFound {
         
         // Mobile navigation toggle
         const navToggle = document.querySelector('.nav-toggle');
-        if (navToggle) {
+        const navMenu = document.querySelector('.nav-menu');
+        if (navToggle && navMenu) {
             navToggle.addEventListener('click', () => {
-                const navMenu = document.querySelector('.nav-menu');
                 navMenu.classList.toggle('active');
+                navToggle.classList.toggle('active');
+            });
+            
+            // Close menu when clicking on nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    navMenu.classList.remove('active');
+                    navToggle.classList.remove('active');
+                });
             });
         }
         
@@ -154,6 +600,35 @@ class UTALostFound {
                 this.handleQuickAction(action);
             });
         });
+        
+        // Location button
+        const getLocationBtn = document.getElementById('getLocationBtn');
+        if (getLocationBtn) {
+            getLocationBtn.addEventListener('click', () => {
+                this.autoFillLocation();
+            });
+        }
+        
+        // Camera button
+        const takePhotoBtn = document.getElementById('takePhotoBtn');
+        if (takePhotoBtn) {
+            takePhotoBtn.addEventListener('click', () => {
+                this.takePhoto();
+            });
+        }
+        
+        // Notification button
+        const notificationBtn = document.getElementById('notificationBtn');
+        if (notificationBtn) {
+            notificationBtn.addEventListener('click', async () => {
+                const granted = await this.requestNotificationPermission();
+                if (granted) {
+                    notificationBtn.classList.add('enabled');
+                    notificationBtn.innerHTML = '<i class="fas fa-bell-slash"></i>';
+                    notificationBtn.title = 'Notifications enabled';
+                }
+            });
+        }
         
         // Form navigation
         const nextBtn = document.getElementById('nextBtn');
@@ -700,9 +1175,9 @@ class UTALostFound {
             return false;
         }
         
-        const utaEmailRegex = /^[a-zA-Z0-9._%+-]+@mavs\.uta\.edu$/i;
+        const utaEmailRegex = /^[a-zA-Z0-9._%+-]+@(mavs\.)?uta\.edu$/i;
         if (!utaEmailRegex.test(value)) {
-            this.showError('utaEmail-error', 'Please enter a valid @mavs.uta.edu email address');
+            this.showError('utaEmail-error', 'Please enter a valid @mavs.uta.edu (students) or @uta.edu (staff) email address');
             return false;
         }
         
@@ -840,7 +1315,7 @@ class UTALostFound {
             
             if (!window.authManager.isAuthenticated()) {
                 alert('Please log in to submit items.');
-                window.location.href = 'login.html';
+                window.location.href = 'pages/login.html';
                 return;
             }
         } else {
@@ -907,15 +1382,47 @@ class UTALostFound {
             
             const firebaseItem = {
                 ...itemData,
-                status: 'PENDING',
+                type: itemData.mode, // Add type field for compatibility (LOST/FOUND)
+                submittedBy: itemData.userId || null, // Add submittedBy field for dashboard queries
+                status: 'APPROVED', // Auto-approve all submissions
+                approvedAt: serverTimestamp(),
+                approvedBy: 'system',
                 submittedAt: serverTimestamp(),
                 views: 0,
-                matches: []
+                matches: [],
+                isVisible: true, // New field to control visibility
+                isDeleted: false // New field to mark as deleted
             };
             
             console.log('Saving item to Firebase:', firebaseItem);
             const docRef = await addDoc(collection(db, 'items'), firebaseItem);
             console.log('✅ Item saved to Firebase with ID:', docRef.id);
+            
+            // Check for similar items and notify users
+            try {
+                const { itemMatchingService } = await import('./item-matching.js');
+                const similarItems = await itemMatchingService.findSimilarItems(firebaseItem);
+                
+                if (similarItems.length > 0) {
+                    console.log(`🔔 Found ${similarItems.length} similar items - sending notifications`);
+                    
+                    // Send notifications to users who have similar items
+                    if (window.emailNotificationService) {
+                        for (const match of similarItems) {
+                            await window.emailNotificationService.sendSimilarItemNotification(
+                                firebaseItem,
+                                match.item,
+                                match.score,
+                                match.reasons
+                            );
+                        }
+                    }
+                }
+            } catch (matchingError) {
+                console.warn('⚠️ Similar items check failed (non-critical):', matchingError);
+                // Don't fail submission if matching fails
+            }
+            
             return docRef.id;
         } catch (error) {
             console.error('❌ Firebase save error:', error);
@@ -933,10 +1440,14 @@ class UTALostFound {
             const newItem = {
                 id: Date.now().toString(),
                 ...itemData,
-                status: 'PENDING',
+                status: 'APPROVED', // Auto-approve all submissions
+                approvedAt: new Date().toISOString(),
+                approvedBy: 'system',
                 submittedAt: new Date().toISOString(),
                 views: 0,
-                matches: []
+                matches: [],
+                isVisible: true, // New field to control visibility
+                isDeleted: false // New field to mark as deleted
             };
             
             existingItems.unshift(newItem);
@@ -1004,132 +1515,63 @@ class UTALostFound {
     loadItems() {
         try {
             const stored = localStorage.getItem('utaLostFoundItems');
-            return stored ? JSON.parse(stored) : this.generateSampleData();
+            return stored ? JSON.parse(stored) : [];
     } catch (error) {
             console.error('Error loading items:', error);
-            return this.generateSampleData();
+            return [];
         }
     }
     
-    generateSampleData() {
-        const sampleItems = [
-            {
-                id: '1',
-                mode: 'LOST',
-                title: 'iPhone 13 Pro in Black Case',
-                category: 'electronics',
-                description: 'Lost my iPhone 13 Pro in a black leather case near the Central Library. Has a small scratch on the back camera and a white sticker on the back. Last seen on the 3rd floor study area.',
-                brand: 'Apple iPhone 13 Pro',
-                uniqueId: 'IMEI: 123456789012345',
-                date: '2024-01-15',
-                location: 'library',
-                locationSpot: '3rd floor study area',
-                utaEmail: 'john.doe@mavs.uta.edu',
-                contact: 'in-app',
-                colors: ['black'],
-                status: 'PENDING',
-                submittedAt: '2024-01-15T10:30:00Z',
-                photos: [],
-                views: 15,
-                matches: []
-            },
-            {
-                id: '2',
-                mode: 'FOUND',
-                title: 'Blue Water Bottle',
-                category: 'other',
-                description: 'Found a blue water bottle in the Maverick Activities Center locker room. Brand appears to be Hydro Flask with some stickers on it. Left in men\'s locker room.',
-                brand: 'Hydro Flask',
-                date: '2024-01-14',
-                location: 'gym',
-                locationSpot: 'Men\'s locker room',
-                utaEmail: 'jane.smith@mavs.uta.edu',
-                contact: 'email',
-                colors: ['blue'],
-                status: 'APPROVED',
-                submittedAt: '2024-01-14T15:45:00Z',
-                photos: [],
-                views: 8,
-                matches: []
-            },
-            {
-                id: '3',
-                mode: 'FOUND',
-                title: 'Black Backpack',
-                category: 'bags',
-                description: 'Found a black backpack near the Student Center cafeteria. It has a laptop compartment and several pockets. No identifying marks visible. Contains some notebooks and pens.',
-                brand: 'Unknown',
-                date: '2024-01-13',
-                location: 'cafeteria',
-                locationSpot: 'Near entrance',
-                utaEmail: 'mike.wilson@mavs.uta.edu',
-                contact: 'in-app',
-                colors: ['black'],
-                status: 'APPROVED',
-                submittedAt: '2024-01-13T12:20:00Z',
-                photos: [],
-                views: 22,
-                matches: []
-            },
-            {
-                id: '4',
-                mode: 'LOST',
-                title: 'UTA Student ID Card',
-                category: 'id_card',
-                description: 'Lost my UTA student ID card. Name: Sarah Johnson. Last used at the library printer. Please contact if found.',
-                brand: 'UTA',
-                date: '2024-01-12',
-                location: 'library',
-                locationSpot: 'Printer area',
-                utaEmail: 'sarah.johnson@mavs.uta.edu',
-                contact: 'email',
-                colors: ['blue'],
-                status: 'PENDING',
-                submittedAt: '2024-01-12T09:15:00Z',
-                photos: [],
-                views: 5,
-                matches: []
-            }
-        ];
-        
-        localStorage.setItem('utaLostFoundItems', JSON.stringify(sampleItems));
-        return sampleItems;
-    }
     
     async loadBrowseItemsFromFirebase() {
         try {
             console.log('🔄 Starting to load browse items from Firebase...');
-            const { collection, getDocs, query, orderBy, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            const { db } = await import('./firebase-config.js');
             
-            console.log('📡 Firebase modules loaded, querying database...');
-            const itemsCollection = collection(db, 'items');
-            const q = query(
-                itemsCollection, 
-                where('status', '==', 'APPROVED')
+            // Add timeout to prevent hanging
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Firebase loading timeout')), 5000)
             );
-            const querySnapshot = await getDocs(q);
             
-            console.log(`📊 Query returned ${querySnapshot.size} documents`);
+            const loadPromise = (async () => {
+                const { collection, getDocs, query, orderBy, where } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+                const { db } = await import('./firebase-config.js');
+                
+                console.log('📡 Firebase modules loaded, querying database...');
+                const itemsCollection = collection(db, 'items');
+                // Simplified query to avoid composite index requirement
+                const q = query(itemsCollection, orderBy('submittedAt', 'desc'));
+                const querySnapshot = await getDocs(q);
+                
+                console.log(`📊 Query returned ${querySnapshot.size} documents`);
+                
+                this.items = [];
+                querySnapshot.forEach((doc) => {
+                    const itemData = doc.data();
+                    console.log('📄 Processing item:', doc.id, itemData.title, itemData.status);
+                    const item = {
+                        id: doc.id,
+                        ...itemData,
+                        submittedAt: itemData.submittedAt?.toDate?.() || new Date(itemData.submittedAt),
+                        isVisible: itemData.isVisible !== false, // Default to true if not set
+                        isDeleted: itemData.isDeleted === true   // Default to false if not set
+                    };
+                    
+                    // Filter for approved and visible items in JavaScript
+                    if (item.status === 'APPROVED' && item.isVisible && !item.isDeleted) {
+                        this.items.push(item);
+                    }
+                });
+                
+                // Sort by date (newest first) on client side
+                this.items.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+                
+                console.log(`✅ Loaded ${this.items.length} approved items for browse:`, this.items.map(i => i.title));
+            })();
             
-            this.items = [];
-            querySnapshot.forEach((doc) => {
-                const itemData = doc.data();
-                console.log('📄 Processing item:', doc.id, itemData.title, itemData.status);
-                const item = {
-                    id: doc.id,
-                    ...itemData,
-                    submittedAt: itemData.submittedAt?.toDate?.() || new Date(itemData.submittedAt)
-                };
-                this.items.push(item);
-            });
-            
-            // Sort by date (newest first) on client side
-            this.items.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
-            
-            console.log(`✅ Loaded ${this.items.length} approved items for browse:`, this.items.map(i => i.title));
+            await Promise.race([loadPromise, timeoutPromise]);
             this.loadBrowseItems();
-    } catch (error) {
+            
+        } catch (error) {
             console.error('❌ Error loading browse items from Firebase:', error);
             // Fallback to localStorage
             this.loadItemsFromStorage();
@@ -1140,7 +1582,10 @@ class UTALostFound {
     loadItemsFromStorage() {
         try {
             const stored = localStorage.getItem('utaLostFoundItems');
-            const allItems = stored ? JSON.parse(stored) : [];
+            let allItems = stored ? JSON.parse(stored) : [];
+            
+            // No mock data - only load from Firebase or localStorage if available
+            
             // Only show approved items
             this.items = allItems.filter(item => item.status === 'APPROVED');
             console.log(`📦 Loaded ${this.items.length} approved items from localStorage`);
@@ -1161,9 +1606,14 @@ class UTALostFound {
         // Show loading state if items are being loaded
         if (this.items.length === 0) {
             itemsGrid.innerHTML = `
-                <div class="loading-state">
-                    <div class="loading-spinner"></div>
-                    <p>Loading items...</p>
+                <div class="no-items-message">
+                    <i class="fas fa-inbox"></i>
+                    <h3>No items yet</h3>
+                    <p>No approved items found in the system.</p>
+                    <p><strong>Tip:</strong> Submit a new item - it will be automatically approved and visible!</p>
+                    <a href="#submit" class="btn btn-primary" style="margin-top: 1rem;">
+                        <i class="fas fa-plus"></i> Submit New Item
+                    </a>
                 </div>
             `;
             return;
@@ -1263,17 +1713,22 @@ class UTALostFound {
     }
     
     createItemCard(item) {
-        const date = new Date(item.date).toLocaleDateString();
+        const itemType = item.type || item.mode || 'LOST';
+        const date = new Date(item.dateLost || item.dateFound || item.submittedAt).toLocaleDateString();
         const time = new Date(item.submittedAt).toLocaleString();
         const statusClass = item.status ? item.status.toLowerCase() : 'pending';
+        
+        // Get photos if available
+        const photos = item.photos || item.uploadedPhotos || [];
+        const hasPhotos = photos.length > 0;
         
         return `
             <div class="item-card" data-item-id="${item.id}">
                 <!-- Item Header -->
                 <div class="item-header">
                     <div class="item-badges">
-                        <div class="item-type ${item.mode.toLowerCase()}">
-                            ${item.mode === 'LOST' ? '🔍 Lost Item' : '📦 Found Item'}
+                        <div class="item-type ${itemType.toLowerCase()}">
+                            ${itemType === 'LOST' ? '🔍 Lost Item' : '📦 Found Item'}
                         </div>
                         <div class="item-status ${statusClass}">
                             ${this.getStatusIcon(item.status)} ${item.status || 'PENDING'}
@@ -1298,6 +1753,17 @@ class UTALostFound {
                 
                 <!-- Item Body -->
                 <div class="item-body">
+                    ${hasPhotos ? `
+                    <div class="item-photos">
+                        ${photos.slice(0, 3).map(photo => `
+                            <div class="item-photo-thumbnail" onclick="utaLostFound.showPhotoModal('${item.id}', '${photo.dataUrl || photo.url || photo}')">
+                                <img src="${photo.dataUrl || photo.url || photo}" alt="Item photo" loading="lazy">
+                            </div>
+                        `).join('')}
+                        ${photos.length > 3 ? `<div class="item-photo-more">+${photos.length - 3}</div>` : ''}
+                    </div>
+                    ` : ''}
+                    
                     <div class="item-description">
                         <p>${this.escapeHtml(item.description)}</p>
                     </div>
@@ -1372,6 +1838,33 @@ class UTALostFound {
         ).join(' ');
     }
     
+    showPhotoModal(itemId, photoUrl) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay photo-modal';
+        modal.innerHTML = `
+            <div class="modal-content photo-modal-content">
+                <div class="modal-header">
+                    <h3>Item Photo</h3>
+                    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <img src="${photoUrl}" alt="Item photo" class="photo-modal-image">
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Close on overlay click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;

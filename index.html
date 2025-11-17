@@ -18,11 +18,17 @@
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzRGNjQ2RTUiLz4KPHRleHQgeD0iMTYiIHk9IjIwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TEY8L3RleHQ+Cjwvc3ZnPgo=">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiM0RjQ2RTUiLz4KPHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjY0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkZMPC90ZXh0Pgo8L3N2Zz4K">
+    <link rel="apple-touch-icon-precomposed" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiM0RjQ2RTUiLz4KPHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjY0IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkZMPC90ZXh0Pgo8L3N2Zz4K">
     
     <!-- Stylesheets -->
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- EmailJS SDK (for email notifications) -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     
     <!-- Preload critical resources -->
     <link rel="preload" href="styles.css" as="style">
@@ -54,6 +60,9 @@
                 <div class="nav-user auth-required" style="display: none;">
                     <span id="userName">User</span>
                     <span id="adminBadge" style="display: none;">👑</span>
+                    <button id="notificationBtn" class="btn-notification" title="Enable notifications">
+                        <i class="fas fa-bell"></i>
+                    </button>
                     <button onclick="authManager.signOut()" class="btn-logout">Logout</button>
                 </div>
             </div>
@@ -369,7 +378,7 @@
                         <div class="form-group">
                             <label for="utaEmail" class="form-label required">UTA Email Address</label>
                             <input type="email" id="utaEmail" name="utaEmail" placeholder="your.name@mavs.uta.edu" required>
-                            <div class="help-text">Only @mavs.uta.edu emails are accepted for UTA students and staff</div>
+                            <div class="help-text">Students: @mavs.uta.edu | Staff: @uta.edu</div>
                             <div class="error-message" id="utaEmail-error"></div>
                         </div>
                         <div class="form-group">
@@ -409,8 +418,25 @@
                                 <span class="checkbox-custom"></span>
                                 <span class="checkbox-text">
                                     I agree to show this item publicly once approved by administrators
+                                    <button type="button" class="info-icon" onclick="event.preventDefault(); event.stopPropagation(); document.getElementById('publicDisplayInfo').style.display='block';" title="What information will be public?">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
                                 </span>
                             </label>
+                            <div id="publicDisplayInfo" class="public-display-info" style="display: none; margin-top: 12px; padding: 16px; background: #f3f4f6; border-radius: 8px; border-left: 4px solid #4f46e5;">
+                                <strong>What information will be publicly displayed?</strong>
+                                <ul style="margin: 8px 0 0 20px; padding: 0;">
+                                    <li>Item title and description</li>
+                                    <li>Category and location</li>
+                                    <li>Photos (if provided)</li>
+                                    <li>Date found/lost</li>
+                                    <li>Contact method preference (in-app or email)</li>
+                                </ul>
+                                <p style="margin: 12px 0 0 0; font-size: 0.9rem; color: #6b7280;">
+                                    <strong>Not displayed:</strong> Your email address, phone number, or other personal contact information. Users will contact you through the platform's messaging system.
+                                </p>
+                                <button type="button" onclick="document.getElementById('publicDisplayInfo').style.display='none';" style="margin-top: 12px; padding: 6px 12px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer;">Got it</button>
+                            </div>
                             <div class="error-message" id="visibility-error"></div>
                         </div>
                     </div>
@@ -444,7 +470,7 @@
                 <button type="button" id="submitAnother" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Submit Another Item
                 </button>
-                <a href="dashboard.html" class="btn btn-secondary">
+                <a href="pages/dashboard.html" class="btn btn-secondary">
                     <i class="fas fa-tachometer-alt"></i> View Dashboard
                 </a>
             </div>
@@ -465,7 +491,7 @@
                         <li><a href="#home">Home</a></li>
                         <li><a href="#browse">Browse Items</a></li>
                         <li><a href="#submit">Submit Item</a></li>
-                        <li><a href="dashboard.html">Dashboard</a></li>
+                        <li><a href="pages/dashboard.html">Dashboard</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
@@ -493,6 +519,9 @@
         </div>
     </footer>
 
+    <!-- Environment Variables (injected at build time) -->
+    <script src="js/env.js"></script>
+    
     <!-- Firebase SDK -->
     <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
     <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>

@@ -1,7 +1,7 @@
 // Email Notification System for UTA Lost & Found
 // This file contains the logic for sending email notifications
 
-import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 import { db } from './firebase-config.js';
 
 class EmailNotificationService {
@@ -254,6 +254,146 @@ Please do not reply to this email. Contact the claimer directly using the inform
             }
         } catch (error) {
             console.error('Error with claim mailto fallback:', error);
+        }
+    }
+
+    // Send notification when a similar item is found
+    async sendSimilarItemNotification(newItem, similarItem, matchScore, matchReasons) {
+        try {
+            console.log(`📧 Sending similar item notification to ${similarItem.utaEmail}`);
+            
+            // Create email content
+            const emailContent = this.generateSimilarItemEmail(newItem, similarItem, matchScore, matchReasons);
+            
+            // Store notification for admin to send via EmailJS
+            const notification = {
+                type: 'SIMILAR_ITEM_FOUND',
+                recipientEmail: similarItem.utaEmail,
+                recipientName: similarItem.userName || 'UTA User',
+                newItemTitle: newItem.title,
+                newItemId: newItem.id || 'pending',
+                similarItemTitle: similarItem.title,
+                similarItemId: similarItem.id,
+                matchScore: matchScore,
+                matchReasons: matchReasons,
+                emailContent: emailContent,
+                status: 'PENDING',
+                createdAt: serverTimestamp(),
+                priority: 'HIGH'
+            };
+
+            const notificationRef = await addDoc(collection(db, 'notifications'), notification);
+            notification.id = notificationRef.id; // Add the document ID
+            
+            // Try to send via EmailJS if configured
+            await this.sendViaEmailJS(notification);
+            
+            console.log('✅ Similar item notification queued');
+            return true;
+        } catch (error) {
+            console.error('❌ Error sending similar item notification:', error);
+            return false;
+        }
+    }
+
+    // Generate email content for similar item notifications
+    generateSimilarItemEmail(newItem, similarItem, matchScore, matchReasons) {
+        const matchPercentage = Math.round(matchScore * 100);
+        const subject = `UTA Lost & Found: Potential Match Found for Your ${similarItem.mode} Item!`;
+        const body = `Dear ${similarItem.userName || 'UTA Student'},
+
+Great news! We found a ${newItem.mode.toLowerCase()} item that might match your ${similarItem.mode.toLowerCase()} item.
+
+📋 YOUR ITEM:
+• Title: "${similarItem.title}"
+• Category: ${similarItem.category}
+• Location: ${similarItem.location}
+• Date: ${new Date(similarItem.date || similarItem.submittedAt).toLocaleDateString()}
+
+🎯 POTENTIAL MATCH FOUND:
+• Title: "${newItem.title}"
+• Category: ${newItem.category}
+• Location: ${newItem.location}
+• Match Score: ${matchPercentage}% similarity
+
+✅ MATCH REASONS:
+${matchReasons.map(reason => `• ${reason}`).join('\n')}
+
+📞 NEXT STEPS:
+1. Log in to the UTA Lost & Found system
+2. View the potential match item details
+3. Compare the item with what you lost/found
+4. If it matches, contact the other user through the platform
+5. Arrange a safe meeting to verify ownership
+
+🔗 VIEW ITEM:
+Visit: https://utalostandfound.netlify.app
+Then browse items or search for: "${newItem.title}"
+
+⚠️ IMPORTANT REMINDERS:
+• Always verify ownership before claiming
+• Meet in a safe, public location on campus
+• Ask for proof of ownership (serial numbers, unique features, etc.)
+• Trust your instincts - if something doesn't match, don't proceed
+
+🏫 UTA LOST & FOUND SUPPORT:
+If you need assistance, contact us:
+• Email: lostfound@uta.edu
+• Phone: (817) 272-2011
+
+Thank you for using the UTA Lost & Found system!
+
+Best regards,
+UTA Lost & Found Team
+University of Texas at Arlington
+
+---
+This is an automated notification from the UTA Lost & Found system.
+The matching algorithm found ${matchPercentage}% similarity between items.`;
+
+        return { subject, body };
+    }
+
+    // Send email via EmailJS (if configured)
+    async sendViaEmailJS(notification) {
+        try {
+            // Check if EmailJS is loaded and configured
+            if (typeof emailjs === 'undefined') {
+                console.log('📧 EmailJS not loaded - skipping direct email send');
+                return false;
+            }
+
+            const emailjsConfig = window.EMAILJS_CONFIG || {};
+            if (!emailjsConfig.serviceId || !emailjsConfig.templateId || !emailjsConfig.userId) {
+                console.log('📧 EmailJS not configured - notification queued for admin');
+                return false;
+            }
+
+            // Send via EmailJS
+            const templateParams = {
+                to_email: notification.recipientEmail,
+                to_name: notification.recipientName,
+                subject: notification.emailContent.subject,
+                message: notification.emailContent.body,
+                item_title: notification.newItemTitle,
+                match_score: Math.round(notification.matchScore * 100)
+            };
+
+            await emailjs.send(
+                emailjsConfig.serviceId,
+                emailjsConfig.templateId,
+                templateParams,
+                emailjsConfig.userId
+            );
+
+            console.log('✅ Email sent via EmailJS');
+            
+            // Mark notification as sent
+            await this.markNotificationSent(notification.id);
+            return true;
+        } catch (error) {
+            console.warn('⚠️ EmailJS send failed (notification still queued):', error);
+            return false;
         }
     }
 }

@@ -27,7 +27,7 @@ class LoginPage {
     checkAuthState() {
         // If user is already logged in, redirect to dashboard
         if (authManager.isAuthenticated()) {
-            window.location.href = 'dashboard.html';
+            window.location.href = 'pages/dashboard.html';
         }
     }
     
@@ -45,7 +45,7 @@ class LoginPage {
         
         // Validate UTA email
         if (!authManager.validateUtaEmail(email)) {
-            this.showError('Only @mavs.uta.edu emails are allowed');
+            this.showError('Only @mavs.uta.edu (students) or @uta.edu (staff) emails are allowed');
             return;
         }
         
@@ -65,7 +65,7 @@ class LoginPage {
                     if (authManager.isUserAdmin()) {
                         window.location.href = 'admin.html';
                     } else {
-                        window.location.href = 'dashboard.html';
+                        window.location.href = 'pages/dashboard.html';
                     }
                 }, 1500);
             } else {
@@ -90,7 +90,7 @@ class LoginPage {
         }
         
         if (!authManager.validateUtaEmail(email)) {
-            this.showError('Only @mavs.uta.edu emails are allowed');
+            this.showError('Only @mavs.uta.edu (students) or @uta.edu (staff) emails are allowed');
             return;
         }
         
